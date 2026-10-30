@@ -1,0 +1,38 @@
+name: register
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: lifecycle transitions against the base
+        if: github.event_name == 'pull_request'
+        run: python tools/check_register.py --previous origin/${{ github.base_ref }}
+      - name: the register's checks
+        if: github.event_name != 'pull_request'
+        run: python tools/check_register.py
+      - name: tests
+        run: python -m unittest discover -s tests -v
+  report:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: coverage and reconciliation report at the tag
+        run: |
+          d=reports/$(date -u +%Y-%m-%d)
+          mkdir -p "$d"
+          python tools/check_register.py --report "$d/check.json"
+          python tools/inventory.py > "$d/caps.txt"
+      - uses: actions/upload-artifact@v4
+        with: { name: register-report, path: reports/ }
