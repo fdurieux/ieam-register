@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IEAM Register Canvas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<!-- The IEAM register: opportunity canvas, SWOT and the repository drawn. Written 2026-10-30 from
+     pumllint docs/ieam-register-proposal.md; also published as a private claude.ai page
+     (https://claude.ai/artifact/UKEJaGcJcGq7mD2yXwynh9), of which this file is the committed copy.
+     Self-contained apart from the Google Fonts stylesheet, which falls back to system faces offline. -->
+<style>
+html{background:#F6F5F1}
+@media (prefers-color-scheme: dark){html:not([data-theme="light"]){background:#15201D}}
+
+/* Layout: a ledger. Two boards, each a grid of ruled cells; one accent (ink teal) for headings, semantic tints only inside the SWOT. */
+:root{
+  --bg:#F6F5F1; --card:#FFFFFF; --fg:#1F2A26; --muted:#5B6B64; --line:#D7DAD3; --accent:#0B6E70; --accent-pale:#E3F0EF;
+  --s:#E4F1E7; --w:#FBEBD9; --o:#E6EEF8; --t:#F7E1E0; --s-fg:#1F5B33; --w-fg:#7A4A10; --o-fg:#1F4A7A; --t-fg:#7A2A24;
+  --display:"Source Serif 4",Georgia,"Times New Roman",serif; --body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15201D; --card:#1C2926; --fg:#E7ECE8; --muted:#A3B1AA; --line:#33433E; --accent:#5FC2C0; --accent-pale:#1E3634;
+  --s:#1E3A2A; --w:#3E2E17; --o:#1F2E42; --t:#42231F; --s-fg:#9ED9B0; --w-fg:#F0C27C; --o-fg:#9EC4F2; --t-fg:#F2A69F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15201D; --card:#1C2926; --fg:#E7ECE8; --muted:#A3B1AA; --line:#33433E; --accent:#5FC2C0; --accent-pale:#1E3634;
+  --s:#1E3A2A; --w:#3E2E17; --o:#1F2E42; --t:#42231F; --s-fg:#9ED9B0; --w-fg:#F0C27C; --o-fg:#9EC4F2; --t-fg:#F2A69F; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14.5px;line-height:1.5;margin:0;
+  padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:26px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:30px;font-weight:600;line-height:1.15}
+h2{font-size:21px;font-weight:600;color:var(--accent)}
+h3{font-size:15px;font-weight:600}
+.eyebrow{font-size:11.5px;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lede{max-width:72ch;color:var(--fg);margin:0}
+.lede p{margin:6px 0}
+.meta{display:flex;gap:10px 22px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+.meta b{color:var(--fg);font-weight:600}
+code{font-family:var(--mono);font-size:12.5px;background:var(--accent-pale);padding:1px 5px;border-radius:4px}
+section{display:grid;gap:12px}
+.board{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.canvas{grid-template-columns:repeat(5,minmax(0,1fr))}
+.cell{background:var(--card);padding:14px 16px 16px;min-width:0;display:grid;gap:8px;align-content:start}
+.cell .n{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.cell ul{margin:0;padding-left:16px;display:grid;gap:5px}
+.cell li{font-size:13.5px}
+.cell li::marker{color:var(--accent)}
+.wide{grid-column:span 5}
+.swot{grid-template-columns:repeat(2,minmax(0,1fr))}
+.swot .cell{padding:16px 18px 18px}
+.swot .cell h3{font-size:17px;display:flex;align-items:baseline;gap:10px}
+.swot .cell h3 .tag{font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.6px;padding:2px 8px;border-radius:999px}
+.S{background:var(--s)} .S h3 .tag{background:var(--s-fg);color:var(--card)} .S li::marker{color:var(--s-fg)}
+.W{background:var(--w)} .W h3 .tag{background:var(--w-fg);color:var(--card)} .W li::marker{color:var(--w-fg)}
+.O{background:var(--o)} .O h3 .tag{background:var(--o-fg);color:var(--card)} .O li::marker{color:var(--o-fg)}
+.T{background:var(--t)} .T h3 .tag{background:var(--t-fg);color:var(--card)} .T li::marker{color:var(--t-fg)}
+.verdict{border-left:4px solid var(--accent);padding:10px 16px;background:var(--card);border-radius:0 8px 8px 0;max-width:80ch}
+.verdict p{margin:4px 0}
+.small{font-size:12.5px;color:var(--muted)}
+.foot{color:var(--muted);font-size:12.5px;max-width:80ch}
+.foot a{color:var(--accent)}
+.diag{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;overflow-x:auto}
+.diag svg{display:block;width:100%;min-width:760px;height:auto;font-family:var(--body)}
+.lane{fill:var(--bg);stroke:var(--line);stroke-width:1}
+.lane-main{fill:var(--accent-pale)}
+.lanelbl{font-size:11px;letter-spacing:.9px;font-weight:600;fill:var(--muted)}
+.box rect{stroke-width:1.5}
+.box.rec rect{fill:var(--card);stroke:var(--accent)}
+.box.mirror rect{fill:var(--card);stroke:var(--muted);stroke-dasharray:6 4}
+.box.der rect{fill:var(--card);stroke:var(--muted);stroke-dasharray:2 4}
+.box.ext rect{fill:var(--card);stroke:var(--line)}
+.box.tool rect{fill:var(--bg);stroke:var(--fg)}
+.t1{font-size:13.5px;font-weight:600;fill:var(--fg)}
+.t2{font-size:11.5px;fill:var(--muted)}
+.t3{font-size:11.5px;fill:var(--fg);font-family:var(--mono)}
+.flow line{stroke:var(--fg);stroke-width:1.6;marker-end:url(#arr);opacity:.75}
+.flow line.dashed{stroke-dasharray:6 4}
+.flow line.noarr{marker-end:none}
+.arrfill{fill:var(--fg)}
+.tree summary{cursor:pointer;font-weight:600;font-size:13.5px}
+.tree pre{font-family:var(--mono);font-size:12px;line-height:1.5;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto;margin:8px 0 0}
+@media (max-width:1000px){.canvas{grid-template-columns:repeat(2,minmax(0,1fr))} .wide{grid-column:span 2}}
+@media (max-width:560px){.canvas,.swot{grid-template-columns:1fr} .wide{grid-column:span 1} h1{font-size:25px}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header style="display:grid;gap:10px">
+    <div class="eyebrow">Opportunity canvas and SWOT · a proposal, not a decision</div>
+    <h1>The IEAM register: a git spine for six taxonomies</h1>
+    <div class="lede">
+      <p>The proposal under review: one new repository, <code>ieam-register</code>, holding identities, typed cross-domain relationships, approvals, glossary, mapping matrix, decision records and exceptions for the six IEAM taxonomies, with hierarchy as a <code>parent</code> field in one TOML file per node, dated append-only exports from ARIS, Archi and the enterprise data model, and a standard-library checker in CI. ARIS, Archi and the EDM stay the authors of content; git is authoritative only for what they cannot carry.</p>
+    </div>
+    <div class="meta"><span><b>Source</b> ieam-git-structure.md, 30 October 2026</span><span><b>Against</b> the IEAM proposed approach, 30 October 2026</span><span><b>Status</b> evaluated, nothing built</span></div>
+  </header>
+
+  <section>
+    <h2>The repository, drawn</h2>
+    <div class="small">Three kinds of folder: authoritative records (solid), dated mirrors of tool exports with provenance (dashed), and derived results written at a tag (dotted). Arrows are flows of data; the tools stay the authors of content.</div>
+    <div class="diag">
+      <svg viewBox="0 0 1160 600" role="img" aria-label="The ieam-register repository: authors, dated exports, the register's authoritative folders, the checker, the derived reports and the two consuming tools" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrfill"/></marker>
+        </defs>
+        <!-- lanes -->
+        <rect x="8" y="8" width="210" height="584" rx="12" class="lane"/>
+        <text x="24" y="34" class="lanelbl">AUTHORS OF CONTENT</text>
+        <rect x="236" y="8" width="224" height="584" rx="12" class="lane"/>
+        <text x="252" y="34" class="lanelbl">EXPORTS, DATED MIRRORS</text>
+        <rect x="478" y="8" width="420" height="584" rx="12" class="lane lane-main"/>
+        <text x="494" y="34" class="lanelbl">IEAM-REGISTER, THE RECORD</text>
+        <rect x="916" y="8" width="236" height="584" rx="12" class="lane"/>
+        <text x="932" y="34" class="lanelbl">DERIVED, NEVER THE RECORD</text>
+
+        <!-- authors -->
+        <g class="box ext"><rect x="24" y="60" width="178" height="62" rx="9"/><text x="36" y="84" class="t1">ARIS</text><text x="36" y="104" class="t2">processes, journeys, products</text></g>
+        <g class="box ext"><rect x="24" y="140" width="178" height="62" rx="9"/><text x="36" y="164" class="t1">Archi</text><text x="36" y="184" class="t2">capabilities, applications</text></g>
+        <g class="box ext"><rect x="24" y="220" width="178" height="62" rx="9"/><text x="36" y="244" class="t1">EDM repository</text><text x="36" y="264" class="t2">entities, physical assets</text></g>
+        <g class="box ext"><rect x="24" y="472" width="178" height="62" rx="9"/><text x="36" y="496" class="t1">Stewards and owners</text><text x="36" y="516" class="t2">approve by pull request</text></g>
+
+        <!-- exports -->
+        <g class="box mirror"><rect x="252" y="60" width="192" height="62" rx="9"/><text x="264" y="84" class="t1">exports/aris/&lt;date&gt;/</text><text x="264" y="104" class="t2">MANIFEST · report output · RECONCILE</text></g>
+        <g class="box mirror"><rect x="252" y="140" width="192" height="62" rx="9"/><text x="264" y="164" class="t1">exports/archi/&lt;date&gt;/</text><text x="264" y="184" class="t2">MANIFEST · exchange xml · RECONCILE</text></g>
+        <g class="box mirror"><rect x="252" y="220" width="192" height="62" rx="9"/><text x="264" y="244" class="t1">exports/edm/&lt;date&gt;/</text><text x="264" y="264" class="t2">MANIFEST · own export · RECONCILE</text></g>
+        <g class="box tool"><rect x="252" y="330" width="192" height="52" rx="9"/><text x="264" y="352" class="t1">tools/reconcile.py</text><text x="264" y="371" class="t2">adds, updates, deletes; drafts</text></g>
+
+        <!-- register -->
+        <g class="box rec"><rect x="494" y="60" width="184" height="118" rx="9"/><text x="506" y="84" class="t1">six taxonomies</text>
+          <text x="506" y="104" class="t3">capabilities/ CAP-… products/ PRD-…</text><text x="506" y="121" class="t3">journeys/ JRN-… processes/ PROC-…</text><text x="506" y="138" class="t3">applications/ APP-… information/ ENT-…</text><text x="506" y="162" class="t2">one TOML per node; parent in data</text></g>
+        <g class="box rec"><rect x="698" y="60" width="184" height="118" rx="9"/><text x="710" y="84" class="t1">relationships/</text>
+          <text x="710" y="104" class="t3">requires · concerns · is_supported_by</text><text x="710" y="121" class="t3">realizes · delivers · supports · crud</text><text x="710" y="138" class="t3">manages · owns · maps_to</text><text x="710" y="162" class="t2">type header + [[link]] with approval</text></g>
+        <g class="box rec"><rect x="494" y="196" width="184" height="96" rx="9"/><text x="506" y="220" class="t1">metamodel/ glossary/</text><text x="506" y="240" class="t3">types · lifecycle · sources</text><text x="506" y="257" class="t3">one approved term per concept</text><text x="506" y="279" class="t2">the design contract</text></g>
+        <g class="box rec"><rect x="698" y="196" width="184" height="96" rx="9"/><text x="710" y="220" class="t1">mapping/ decisions/ exceptions/</text><text x="710" y="240" class="t3">matrix: native · configured ·</text><text x="710" y="257" class="t3">extension · unsupported · unverified</text><text x="710" y="279" class="t2">ADRs; expiring exceptions</text></g>
+        <g class="box rec"><rect x="494" y="310" width="184" height="52" rx="9"/><text x="506" y="332" class="t1">organisation/ ORG-…</text><text x="506" y="351" class="t2">ownership is a link, not a parent</text></g>
+        <g class="box tool"><rect x="698" y="310" width="184" height="52" rx="9"/><text x="710" y="332" class="t1">tools/check_register.py</text><text x="710" y="351" class="t2">CI: types, cycles, links, lifecycle</text></g>
+        <g class="box tool"><rect x="494" y="380" width="388" height="52" rx="9"/><text x="506" y="402" class="t1">.github/workflows/ci.yml</text><text x="506" y="421" class="t2">a merge is refused on a dangling link, a skipped state or an incomplete approval; a tag writes reports/</text></g>
+        <g class="box tool"><rect x="494" y="472" width="184" height="52" rx="9"/><text x="506" y="494" class="t1">tools/inventory.py</text><text x="506" y="513" class="t2">caps.txt for the diagram side</text></g>
+        <g class="box tool"><rect x="698" y="472" width="184" height="52" rx="9"/><text x="710" y="494" class="t1">tools/impact.py</text><text x="710" y="513" class="t2">walks typed edges from a node</text></g>
+
+        <!-- derived -->
+        <g class="box der"><rect x="932" y="60" width="204" height="62" rx="9"/><text x="944" y="84" class="t1">reports/&lt;date&gt;/</text><text x="944" y="104" class="t2">coverage, impact, reconciliation</text></g>
+        <g class="box der"><rect x="932" y="140" width="204" height="62" rx="9"/><text x="944" y="164" class="t1">Neo4j projection</text><text x="944" y="184" class="t2">reads a tag; never committed</text></g>
+        <g class="box ext"><rect x="932" y="310" width="204" height="62" rx="9"/><text x="944" y="334" class="t1">aris2puml → pumllint</text><text x="944" y="354" class="t2">trace --fail-on-uncovered</text></g>
+        <g class="box der"><rect x="932" y="472" width="204" height="52" rx="9"/><text x="944" y="494" class="t1">impact answers</text><text x="944" y="513" class="t2">the three decision questions</text></g>
+
+        <!-- flows -->
+        <g class="flow">
+          <line x1="202" y1="91" x2="250" y2="91"/><line x1="202" y1="171" x2="250" y2="171"/><line x1="202" y1="251" x2="250" y2="251"/>
+          <line x1="348" y1="122" x2="348" y2="328"/><line x1="348" y1="202" x2="348" y2="202"/>
+          <line x1="444" y1="356" x2="492" y2="356" /><text x="372" y="402" class="t2">drafts only, never approvals</text>
+          <line x1="202" y1="503" x2="492" y2="503"/>
+          <line x1="882" y1="406" x2="1032" y2="406"/><line x1="1032" y1="406" x2="1032" y2="124"/>
+          <line x1="1032" y1="124" x2="1032" y2="138" class="noarr"/>
+          <line x1="678" y1="498" x2="930" y2="498" class="dashed"/>
+          <line x1="1034" y1="372" x2="1034" y2="470" class="dashed"/>
+          <line x1="882" y1="498" x2="930" y2="498"/>
+          <line x1="790" y1="362" x2="790" y2="378"/><line x1="586" y1="362" x2="586" y2="378"/>
+          <line x1="586" y1="178" x2="586" y2="194"/><line x1="790" y1="178" x2="790" y2="194"/>
+        </g>
+        <text x="700" y="455" class="t2">inventory feeds the diagram-side coverage check; trace -f json comes back for the map check (Loop C)</text>
+      </svg>
+    </div>
+    <details class="tree"><summary>The directory tree, as proposed</summary><pre>ieam-register/
+├── README.md                      adopter register: what this is, how to add a node, how approval works
+├── METAMODEL.md                   the design contract in prose
+├── metamodel/      types.toml · lifecycle.toml · sources.toml
+├── glossary/       glossary.toml   one approved term per concept, forbidden synonyms, owner, since
+├── capabilities/   CAP-0001.toml …
+├── products/       PRD-0001.toml …
+├── journeys/       JRN-0001.toml …   journeys, stages, steps, touchpoints: one kind field, one prefix
+├── processes/      PROC-0001.toml …  PROC- matches the footer ids aris2puml already emits
+├── applications/   APP-0001.toml …
+├── information/    ENT-0001.toml …
+├── organisation/   ORG-0001.toml …   business units; ownership is a relationship, never a parent
+├── relationships/  requires · concerns · is_supported_by · realizes · delivers · supports · crud · manages · owns · maps_to  (one .toml each)
+├── mapping/        matrix.toml     per node kind and relationship type: ARIS and Archi status and evidence
+├── decisions/      0001-….md …     ADR-style, never edited after approval, superseded by a new one
+├── exceptions/     EXC-0001.toml … approved deviations from a coverage rule; scope, rationale, approver, expiry
+├── exports/        aris/&lt;date&gt;/ · archi/&lt;date&gt;/ · edm/&lt;date&gt;/   MANIFEST.toml + the export + RECONCILE.json
+├── reports/        &lt;date&gt;/        coverage, impact and reconciliation summaries, written at a tag only
+├── tools/          check_register.py · reconcile.py · impact.py · inventory.py   (standard library)
+└── .github/workflows/ci.yml</pre></details>
+  </section>
+
+  <section>
+    <h2>Opportunity canvas</h2>
+    <div class="board canvas">
+      <div class="cell"><div class="n">1 · Problems</div><h3>What hurts today</h3><ul>
+        <li>Six taxonomies live in three tools with no shared identity across them.</li>
+        <li>Cross-domain links (requires, realizes, supports, manages) have no owner, rationale, approval or review date anywhere.</li>
+        <li>"Which journeys and products if this module retires?" is answered by hand, each time.</li>
+        <li>No record says which IEAM relationship ARIS carries natively, needs configuration, or cannot carry.</li>
+        <li>Coverage claims arrive without a denominator or a count of exceptions.</li>
+      </ul></div>
+      <div class="cell"><div class="n">2 · Solution ideas</div><h3>What the register adds</h3><ul>
+        <li>One directory per taxonomy, hierarchy in data, never in folder depth.</li>
+        <li>One file per relationship type: kinds, direction, inverse, cardinality per state, owner, evidence class, ARIS and Archi support status, then the links.</li>
+        <li>Approval as a file-state change with approver, date and record; both owners on cross-domain links.</li>
+        <li>Dated exports with manifest and digests; a reconciliation report of adds, updates and deletes.</li>
+        <li>CI refuses dangling links, cycles, duplicates, skipped lifecycle steps; reports coverage with exceptions.</li>
+      </ul></div>
+      <div class="cell"><div class="n">3 · Users and customers</div><h3>Who touches it</h3><ul>
+        <li>The IEAM owner and six domain stewards, approving by pull request.</li>
+        <li>Relationship owners on both sides of a cross-domain link.</li>
+        <li>Architects answering impact and coverage questions.</li>
+        <li>aris2puml and pumllint, which consume the capability inventory and feed <code>trace -f json</code> back.</li>
+        <li>Reviewers and auditors reading the approval trail.</li>
+      </ul></div>
+      <div class="cell"><div class="n">4 · Solutions today</div><h3>How it is done now</h3><ul>
+        <li>ARIS reports and Archi views, read one tool at a time.</li>
+        <li>Spreadsheets of mappings; approvals by email or meeting minute.</li>
+        <li>Capability coverage of process diagrams through footer ids and <code>pumllint trace</code>, on the diagram side only.</li>
+        <li>No reconciliation when an export changes: a vanished object is noticed late or never.</li>
+      </ul></div>
+      <div class="cell"><div class="n">5 · User value</div><h3>What a steward gets</h3><ul>
+        <li>One diffable history of every mapping, with the rationale beside it.</li>
+        <li>A merge that cannot happen while a link dangles or an approval is incomplete.</li>
+        <li>Impact answers as a walk over typed edges, each with its state, owner and evidence.</li>
+        <li>Drafts proposed from exports, approvals never.</li>
+      </ul></div>
+      <div class="cell"><div class="n">6 · User metrics</div><h3>What to watch</h3><ul>
+        <li>Cycle time of a mapping from draft to approved.</li>
+        <li>Share of approved cross-domain links with both owners recorded.</li>
+        <li>Dangling-link and stale-id findings per export reconciliation.</li>
+        <li>Overdue reviews; exceptions open and expiring.</li>
+        <li>Time to answer each of the three decision questions.</li>
+      </ul></div>
+      <div class="cell"><div class="n">7 · Adoption strategy</div><h3>How it starts</h3><ul>
+        <li>Pilot one product and one journey whose processes are already in the aris2puml pilot corpus.</li>
+        <li>Create the six directories and the metamodel on day one; populate one slice.</li>
+        <li>Generate node drafts from the first exports; stewards approve by PR.</li>
+        <li>Expand only after the three questions answer reliably and stewards can keep up.</li>
+      </ul></div>
+      <div class="cell"><div class="n">8 · Business challenges</div><h3>What the business risks now</h3><ul>
+        <li>Retirement and transformation decisions taken on untraceable mappings.</li>
+        <li>Divergent duplicates of the same concept across tools.</li>
+        <li>No audit trail of who approved a cross-domain dependency, or when it was last reviewed.</li>
+      </ul></div>
+      <div class="cell"><div class="n">9 · Business benefits and metrics</div><h3>What the business gains</h3><ul>
+        <li>Decisions with a recorded impact path from offering and journey to module and data.</li>
+        <li>Coverage stated with its denominator and its exceptions, never as a bare percentage.</li>
+        <li>Count of cross-domain mappings with rationale, owner and approval on record.</li>
+        <li>External ids reconciled on every export: fewer silent divergences.</li>
+      </ul></div>
+      <div class="cell"><div class="n">10 · Budget</div><h3>What it costs</h3><ul>
+        <li>Small in code: one repository, standard-library tooling, a CI job.</li>
+        <li>Real in people: steward review time and the validation of ARIS export routes for six domains.</li>
+        <li>Deferred: any Neo4j projection, until a query exceeds what the register's reports answer.</li>
+      </ul></div>
+    </div>
+    <div class="small">Boxes follow Jeff Patton's opportunity canvas. Every entry is drawn from the proposal document; nothing has been measured yet.</div>
+  </section>
+
+  <section>
+    <h2>SWOT</h2>
+    <div class="board swot">
+      <div class="cell S"><h3><span class="tag">S</span>Strengths</h3><ul>
+        <li>No second source of truth by construction: node files hold an id, a state, an owner, links and a pointer; a checked name, no copied attributes.</li>
+        <li>Approval is a recorded file state with approver, date and record, four eyes where the lifecycle says so.</li>
+        <li>A dangling link, a cycle, a duplicate id or a skipped lifecycle step blocks the merge; nothing is auto-fixed.</li>
+        <li>Standard-library checker, TOML, dated results and digests: conventions the two repositories already use.</li>
+        <li>Consistent with the standing settlements: no store on pumllint's product path, Loop C outside the seam, typed relations as declared links.</li>
+        <li>An identity spine a later Neo4j projection can read from a tag, with provenance stamped on every node and edge.</li>
+      </ul></div>
+      <div class="cell W"><h3><span class="tag">W</span>Weaknesses</h3><ul>
+        <li>Hand-authored TOML suits dozens of nodes; a thousand-node process taxonomy needs generated drafts and more steward time.</li>
+        <li>A fourth place beside ARIS, Archi and the EDM: one more thing to keep current, even if it holds only links.</li>
+        <li>Approval in git is not approval in ARIS; two governance surfaces until the mapping matrix says which one rules each relationship.</li>
+        <li>Names are checked against the latest export, so a rename in ARIS shows up only at the next reconciliation.</li>
+        <li>Journeys may have to be authored in the register directly if no export carries them, which breaks the "pointer only" rule for one taxonomy.</li>
+      </ul></div>
+      <div class="cell O"><h3><span class="tag">O</span>Opportunities</h3><ul>
+        <li>The three decision questions answered end to end on one real slice: module retirement impact, journey steps without a process, required capabilities without a realising process or a diagram.</li>
+        <li>The first measured test of the footer convention against a capability map, which the ROADMAP has placed in Loop C since 2026-10-29.</li>
+        <li>The mapping matrix doubles as the IEAM's step-one deliverable: every relationship marked native, configured, extension or unsupported, starting at unverified.</li>
+        <li>Reconciliation drafts turn exports into proposals, so stewards review rather than type.</li>
+        <li>A tag-driven projection gives the IEAM's one-way Neo4j publication an identity layer it otherwise has to build twice.</li>
+      </ul></div>
+      <div class="cell T"><h3><span class="tag">T</span>Threats</h3><ul>
+        <li>No ARIS export format, GUID stability or connection name is verified for any of the six domains; a GUID that changes across databases breaks every pointer.</li>
+        <li>ArchiMate 3.2 has no journey element, and the exchange format does not carry EPC, BPMN or journey models.</li>
+        <li>Enterprise data model identifiers: format, stability and export route unknown.</li>
+        <li>Attribute creep: the day a node file copies a field the tool owns, there are two records.</li>
+        <li>The coverage-denominator failure: a refused or unmodelled process reads as a capability gap if the pilot is gated on a percentage.</li>
+        <li>Populating six taxonomies before one slice works, against the IEAM's own second step.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <div class="verdict">
+      <p><b>Worth piloting, on one slice, with the export routes tested first.</b> The strengths are structural and cheap; the threats are almost all about what the tools export, which the pilot is designed to find out. The two things to settle before writing a node file: whether journeys can be pointed at or must be authored, and which of the eight relationships ARIS carries natively.</p>
+      <p>Two changes to the IEAM text follow from the proposal: the Neo4j projection should read a register tag rather than ARIS directly, and coverage should be reported with its denominator and its exceptions, never used as a gate.</p>
+    </div>
+  </section>
+
+  <div class="foot">Sources: the sub-agent's evaluation <em>ieam-git-structure.md</em> (sections 1 to 6 and the summary) and the IEAM proposed approach of 30 October 2026. Settlements cited: pumllint ROADMAP entries of 2026-08-26, 2026-08-27, 2026-10-16, 2026-10-29 and 2026-10-30. This page is a view of the proposal; the document is the record.</div>
+</div>
+</body>
+</html>

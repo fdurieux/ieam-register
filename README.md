@@ -15,6 +15,10 @@ from this structure inside its private repositories.
 The proposal this follows: pumllint
 [`docs/ieam-register-proposal.md`](https://github.com/fdurieux/pumllint/blob/main/docs/ieam-register-proposal.md).
 
+The opportunity canvas, SWOT and a drawing of this repository:
+[`docs/ieam-register-opportunity-canvas.html`](docs/ieam-register-opportunity-canvas.html)
+(open the raw file in a browser; it is self-contained).
+
 ## What is where
 
 | folder | holds | git is |
