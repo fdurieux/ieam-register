@@ -19,7 +19,7 @@ reads; a journey with three steps (sync, check, publish); the daily chain as the
 sync run and the status run as subprocesses and one raw-basis leg as an activity, each with its
 diagram of record in the kit; the `jef-data` application with four modules (sync, health, store,
 collectors); an information domain with four entities (universe, series, corporate actions, seam
-frame). Twenty-nine links of nine types; every link's evidence cites the export manifest, a kit
+frame). Twenty-eight links of nine types; every link's evidence cites the export manifest, a kit
 document and the requirement ids it rests on (`jef_kit:requirements.json#JDL-nnn`), the form the
 knowgov footprint joins on.
 

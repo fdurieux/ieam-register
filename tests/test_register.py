@@ -124,7 +124,7 @@ class SecondSubject(unittest.TestCase):
         self.assertEqual(len(man["files"]), 50)
         self.assertTrue(all(n["source"]["kit_path"] in man["files"] for n in jef.values()), "every node's kit path is in the export")
         links = [ln for rel in reg["relationships"].values() for ln in rel["links"] if ln.get("owner") == "ORG-0003"]
-        self.assertEqual(len(links), 29)
+        self.assertEqual(len(links), 28)
         for ln in links:
             self.assertIn("exports/jef_kit/2026-11-01/MANIFEST.toml", ln["evidence"])
             self.assertTrue(any(e.startswith("jef_kit:") for e in ln["evidence"]), ln["id"])
