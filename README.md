@@ -17,7 +17,7 @@ belongs to (decision 0004): each body of artefacts a platform loads is a source 
 `metamodel/sources.toml` with its own dated exports, its nodes and links sit beside the others',
 and ids are minted across the whole register. Here the organisation is the maintainer's:
 CargoQuote is the first subject, the J-F data-load kit of pumllint's recreation experiment the
-second to come. An organisation's own instance is one register in its private repositories,
+second (decision 0005: source system `jef_kit`, `exports/jef_kit/`, its own slice of nodes and links). An organisation's own instance is one register in its private repositories,
 read by one [knowgov](https://github.com/fdurieux/knowgov) stack.
 
 The proposal this follows: pumllint

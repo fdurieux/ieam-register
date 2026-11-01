@@ -26,3 +26,9 @@ description = "the CargoQuote kit (pumllint kg_experiment/kit), synthetic conten
 id_field = "kit_path"
 authoritative_for = ["capabilities", "products", "journeys", "processes", "applications", "information", "organisation"]
 export_route = "a MANIFEST of sha256 digests at a pumllint commit; the files themselves stay in pumllint"
+
+[system.jef_kit]
+description = "the J-F data-load kit (pumllint recreate_experiment/kit): the maintainer's own daily asset load, reverse-engineered into requirements, contracts, decision tables, diagrams and a tagged suite; the organisation's second subject (decision 0005); synthetic fixtures, no bank data"
+id_field = "kit_path"
+authoritative_for = ["capabilities", "products", "journeys", "processes", "applications", "information", "organisation"]
+export_route = "a MANIFEST of sha256 digests at a pumllint commit; the files themselves stay in pumllint"
