@@ -1,6 +1,6 @@
 # 0006 — The daily chain's stages, read from the chain contract
 
-Date: 2026-11-01. State: proposed (for the maintainer's review). Supersedes: decision 0005 in
+Date: 2026-11-01. State: approved (fdurieux, by the merge of #6 on 2026-11-01; the line read proposed when merged). Supersedes: decision 0005 in
 one reading only, the daily chain's; everything else of 0005 stands.
 
 ## Decision
