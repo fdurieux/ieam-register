@@ -1,6 +1,7 @@
 # The systems of record. The register points at them and checks `name` against their latest
-# export; it never copies their attributes. `kit` is the synthetic source of this test case:
-# the CargoQuote kit under pumllint's kg_experiment/kit, public content, no bank data.
+# export; it never copies their attributes. `kit` is the synthetic source of this test case's
+# first subject: the CargoQuote kit under pumllint's kg_experiment/kit, public content, no bank
+# data. A second subject of the organisation is a second [system.<name>] here (decision 0004).
 
 [system.aris]
 description = "ARIS, the governed authoring repository for processes, journeys, products and operational publication"

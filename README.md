@@ -12,6 +12,14 @@ quoting service from [pumllint's governed-knowledge experiment](https://github.c
 No bank-related data is stored in this repository; an organisation's own instance is created
 from this structure inside its private repositories.
 
+**One register per organisation.** A register holds every subject of the organisation it
+belongs to (decision 0004): each body of artefacts a platform loads is a source of record in
+`metamodel/sources.toml` with its own dated exports, its nodes and links sit beside the others',
+and ids are minted across the whole register. Here the organisation is the maintainer's:
+CargoQuote is the first subject, the J-F data-load kit of pumllint's recreation experiment the
+second to come. An organisation's own instance is one register in its private repositories,
+read by one [knowgov](https://github.com/fdurieux/knowgov) stack.
+
 The proposal this follows: pumllint
 [`docs/ieam-register-proposal.md`](https://github.com/fdurieux/pumllint/blob/main/docs/ieam-register-proposal.md).
 
