@@ -5,6 +5,7 @@ import datetime as dt
 import shutil
 import sys
 import tempfile
+import re
 import unittest
 from pathlib import Path
 
@@ -29,7 +30,7 @@ class RegisterChecks(unittest.TestCase):
     def test_the_register_is_clean(self):
         f, summary = check_register.run(ROOT, today=TODAY)
         self.assertEqual([i for i in f.items if i["level"] == "error"], [], f.items)
-        self.assertEqual(summary["nodes"], 51)   # 27 of the CargoQuote slice, 24 of the J-F slice (decision 0005)
+        self.assertEqual(summary["nodes"], 56)   # 27 of the CargoQuote slice, 29 of the J-F slice (decisions 0005 and 0006)
         self.assertEqual(summary["C1"]["uncovered"], [])
         self.assertEqual(summary["C1"]["excepted"], 1)   # EXC-0001 on the touchpoint
         self.assertEqual(summary["C2"]["uncovered"], [])
@@ -117,14 +118,15 @@ class SecondSubject(unittest.TestCase):
         reg = load_register(ROOT)
         self.assertIn("jef_kit", reg["sources"]["system"])
         jef = {nid: n for nid, n in reg["nodes"].items() if (n.get("source") or {}).get("system") == "jef_kit"}
-        self.assertEqual(len(jef), 24)
-        self.assertTrue(all(n["state"] == "approved" and n["approval"]["record"].endswith("0005-second-subject-jef-data-load.md") for n in jef.values()))
+        self.assertEqual(len(jef), 29)   # 24 of decision 0005, one of them deprecated, and 5 of decision 0006
+        self.assertTrue(all(n["state"] in ("approved", "deprecated") and re.search(r"000[56]-", n["approval"]["record"]) for n in jef.values()))
+        self.assertEqual([nid for nid, n in jef.items() if n["state"] == "deprecated"], ["JRN-0008"])
         self.assertTrue(all(n["source"]["export"] == "exports/jef_kit/2026-11-01" for n in jef.values()))
         man = load_toml(ROOT / "exports" / "jef_kit" / "2026-11-01" / "MANIFEST.toml")
         self.assertEqual(len(man["files"]), 50)
         self.assertTrue(all(n["source"]["kit_path"] in man["files"] for n in jef.values()), "every node's kit path is in the export")
         links = [ln for rel in reg["relationships"].values() for ln in rel["links"] if ln.get("owner") == "ORG-0003"]
-        self.assertEqual(len(links), 28)
+        self.assertEqual(len(links), 37)   # 28 of decision 0005, four of them deprecated, and 9 of decision 0006
         for ln in links:
             self.assertIn("exports/jef_kit/2026-11-01/MANIFEST.toml", ln["evidence"])
             self.assertTrue(any(e.startswith("jef_kit:") for e in ln["evidence"]), ln["id"])
@@ -134,4 +136,5 @@ class SecondSubject(unittest.TestCase):
         reached = {e["to"] for e in impact.walk(reg, "APP-0005")}
         self.assertIn("PROC-0006", reached)
         self.assertIn("PRD-0004", reached)
-        self.assertIn("JRN-0008", reached)
+        self.assertIn("JRN-0011", reached)   # the upload step; JRN-0008 is deprecated (decision 0006)
+        self.assertIn("PRD-0005", reached)
