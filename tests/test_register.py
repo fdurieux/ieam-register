@@ -65,6 +65,27 @@ class RegisterChecks(unittest.TestCase):
         f, _ = check_register.run(d, today=TODAY)
         self.assertTrue(any(i["check"] == "approval" and "does not exist" in i["message"] for i in f.items))
 
+    def test_elicited_knowledge_needs_a_handle_a_date_a_record_and_a_shorter_review(self):
+        """Decision 0008: a link resting on what a person said names an opaque handle, the date and
+        the record of the answer, and is due for review within six months of that date."""
+        d = copy_register()
+        p = d / "relationships" / "realizes.toml"
+        text = p.read_text()
+        bad = text.replace('id = "REL-04001"', 'id = "REL-04001"\nelicited = { from = "Jane Doe", on = 2026-10-01, record = "captures/missing.toml" }', 1)
+        p.write_text(bad)
+        f, _ = check_register.run(d, today=TODAY)
+        msgs = [i["message"] for i in f.items if i["check"] == "elicited"]
+        self.assertTrue(any("not an opaque handle" in m for m in msgs), msgs)
+        self.assertTrue(any("captures/missing.toml does not exist" in m for m in msgs), msgs)
+        self.assertTrue(any("later than 2027-04-01" in m for m in msgs), msgs)
+        good = text.replace('id = "REL-04001"', 'id = "REL-04001"\nelicited = { from = "owner-1", on = 2026-10-30, record = "decisions/0008-knowledge-a-person-gave.md" }', 1)
+        p.write_text(good)
+        f, _ = check_register.run(d, today=TODAY)
+        self.assertEqual([i for i in f.items if i["check"] == "elicited"], [])
+        p.write_text(text.replace('id = "REL-04001"', 'id = "REL-04001"\nelicited = { from = "owner-1", on = 2026-10-30 }', 1))
+        f, _ = check_register.run(d, today=TODAY)
+        self.assertTrue(any(i["check"] == "elicited" and "lacks record" in i["message"] for i in f.items))
+
     def test_glossary_forbids_synonyms(self):
         d = copy_register()
         p = d / "products" / "PRD-0002.toml"
