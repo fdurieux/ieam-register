@@ -25,6 +25,12 @@ IEAM's four plus `unverified`, the starting value, so an untested row cannot pas
 `draft` again from `rejected`, `approved` again from `deprecated`. The checker diffs states
 against a git ref and refuses a skipped transition. Four eyes: the approver is not the author.
 
+**Knowledge a person gave.** A link whose content rests on what a person said carries
+`elicited = { from, on, record }`: an opaque handle (`types.toml` `[elicited]` `handle`, never a
+name or an address), the date, and the path of the record of the answer. Such a link is due for
+review within `lifecycle.toml` `[review.evidence]` `elicited` months (six) of `on`. Decision 0008;
+knowgov's capture path writes the same three fields on the assertions it ingests.
+
 **What the register never holds.** The content of a node beyond its checked `name`: no
 attributes copied from ARIS, Archi or the EDM. The moment a file carries a field the tool owns,
 there are two records.
