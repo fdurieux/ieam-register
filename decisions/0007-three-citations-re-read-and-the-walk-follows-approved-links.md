@@ -1,6 +1,6 @@
 # 0007 — Three citations of 0005 re-read against the requirement text, and the impact walk follows approved links only
 
-Date: 2026-11-02. State: proposed (for the maintainer's review). Supersedes: decision 0006 in
+Date: 2026-11-02. State: approved (fdurieux, by the merge of #8 on 2026-11-02; the line read proposed when merged). Supersedes: decision 0006 in
 its "Not decided here" paragraph; nothing else.
 
 ## Decision
