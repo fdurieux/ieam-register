@@ -1,6 +1,6 @@
 # 0008 — Knowledge a person gave: who, when, the record of the answer, and a shorter review
 
-Date: 2026-11-02. State: proposed (fdurieux reviews; approved by the merge). Supersedes: nothing.
+Date: 2026-11-02. State: approved (fdurieux, by the merge of #10 on 2026-11-02; the line read proposed when merged). Supersedes: nothing.
 
 ## Decision
 
