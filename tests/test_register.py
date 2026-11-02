@@ -133,8 +133,27 @@ class SecondSubject(unittest.TestCase):
 
     def test_impact_walks_the_slice(self):
         reg = load_register(ROOT)
-        reached = {e["to"] for e in impact.walk(reg, "APP-0005")}
+        edges = impact.walk(reg, "APP-0005")
+        reached = impact.reached(edges)
         self.assertIn("PROC-0006", reached)
         self.assertIn("PRD-0004", reached)
-        self.assertIn("JRN-0011", reached)   # the upload step; JRN-0008 is deprecated (decision 0006)
+        self.assertIn("JRN-0011", reached)   # the upload step
         self.assertIn("PRD-0005", reached)
+        # decision 0007: a withdrawn edge is reported and marked, not followed, not counted
+        self.assertNotIn("JRN-0008", reached, "the deprecated step is not reached")
+        withdrawn = {(e["to"], e["state"]) for e in edges if not e["live"]}
+        self.assertIn(("JRN-0008", "deprecated"), withdrawn)
+        self.assertIn(("PRD-0004", "deprecated"), withdrawn)   # REL-05002; PRD-0004 is still reached through PROC-0010
+        self.assertTrue(all(e["state"] == "approved" for e in edges if e["live"]))
+
+    def test_the_three_citations_of_decision_0007(self):
+        reg = load_register(ROOT)
+        by_id = {ln["id"]: ln for rel in reg["relationships"].values() for ln in rel["links"]}
+        self.assertIn("jef_kit:requirements.json#JDL-058", by_id["REL-06008"]["evidence"])
+        self.assertNotIn("jef_kit:requirements.json#JDL-072", by_id["REL-06008"]["evidence"])
+        self.assertIn("jef_kit:requirements.json#JDL-108", by_id["REL-07007"]["evidence"])
+        self.assertNotIn("jef_kit:requirements.json#JDL-113", by_id["REL-07007"]["evidence"])
+        self.assertIn("jef_kit:requirements.json#JDL-156", by_id["REL-03005"]["evidence"])
+        self.assertNotIn("jef_kit:requirements.json#JDL-150", by_id["REL-03005"]["evidence"])
+        for lid in ("REL-06008", "REL-07007", "REL-03005"):
+            self.assertTrue(by_id[lid]["approval"]["record"].endswith("0007-three-citations-re-read-and-the-walk-follows-approved-links.md"), lid)
