@@ -1,6 +1,6 @@
 # 0011 — A compliance unit, the owner of the CargoQuote kit's open decision OD-1
 
-Date: 2026-11-03. State: proposed (fdurieux reviews; approved by the merge). Supersedes: nothing.
+Date: 2026-11-03. State: approved (fdurieux, by the merge of #16 on 2026-11-03; the line read proposed when merged). Supersedes: nothing.
 
 ## Decision
 
