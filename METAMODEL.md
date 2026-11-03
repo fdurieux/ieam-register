@@ -37,6 +37,10 @@ retired, withdrawn; never a name. When it exists, `from` must be listed and live
 outside the register is `capture:<id>` (`external_record`), not resolved. The key from a handle to
 a person is the organisation's directory. Decision 0009.
 
+**The impact walk.** `tools/impact.py` follows approved links only, from the thing changed to
+what rests on it (decisions 0007 and 0010): one row of `FORWARD` per start taxonomy, `owns` and
+`maps_to` never walked, `parent` not descended.
+
 **What the register never holds.** The content of a node beyond its checked `name`: no
 attributes copied from ARIS, Archi or the EDM. The moment a file carries a field the tool owns,
 there are two records.
