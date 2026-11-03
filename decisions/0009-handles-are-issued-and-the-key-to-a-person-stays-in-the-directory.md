@@ -1,6 +1,6 @@
 # 0009 — Handles are issued, and the key from a handle to a person stays in the directory
 
-Date: 2026-11-03. State: proposed (fdurieux reviews; approved by the merge). Supersedes: decision
+Date: 2026-11-03. State: approved (fdurieux, by the merge of #12 on 2026-11-03; the line read proposed when merged). Supersedes: decision
 0008 in its "Not decided here" paragraph (how a handle maps to a person); nothing else.
 
 ## Decision
