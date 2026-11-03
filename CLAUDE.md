@@ -19,7 +19,7 @@ decision, never edited after approval, superseded by a new one.
 ```bash
 python tools/check_register.py                      # the working tree; exit 1 on any error
 python tools/check_register.py --previous origin/main   # plus lifecycle transitions against a ref
-python -m unittest discover -s tests                # fifteen tests, standard library only
+python -m unittest discover -s tests                # sixteen tests, standard library only
 ```
 
 Both must pass. CI runs them on every pull request (with `--previous` set

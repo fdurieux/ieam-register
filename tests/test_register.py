@@ -78,13 +78,32 @@ class RegisterChecks(unittest.TestCase):
         self.assertTrue(any("not an opaque handle" in m for m in msgs), msgs)
         self.assertTrue(any("captures/missing.toml does not exist" in m for m in msgs), msgs)
         self.assertTrue(any("later than 2027-04-01" in m for m in msgs), msgs)
-        good = text.replace('id = "REL-04001"', 'id = "REL-04001"\nelicited = { from = "owner-1", on = 2026-10-30, record = "decisions/0008-knowledge-a-person-gave.md" }', 1)
+        good = text.replace('id = "REL-04001"', 'id = "REL-04001"\nelicited = { from = "employee-1", on = 2026-11-02, record = "decisions/0008-knowledge-a-person-gave.md" }', 1)
         p.write_text(good)
-        f, _ = check_register.run(d, today=TODAY)
+        f, _ = check_register.run(d, today=dt.date(2026, 11, 3))
         self.assertEqual([i for i in f.items if i["check"] == "elicited"], [])
-        p.write_text(text.replace('id = "REL-04001"', 'id = "REL-04001"\nelicited = { from = "owner-1", on = 2026-10-30 }', 1))
-        f, _ = check_register.run(d, today=TODAY)
+        p.write_text(text.replace('id = "REL-04001"', 'id = "REL-04001"\nelicited = { from = "employee-1", on = 2026-11-02 }', 1))
+        f, _ = check_register.run(d, today=dt.date(2026, 11, 3))
         self.assertTrue(any(i["check"] == "elicited" and "lacks record" in i["message"] for i in f.items))
+
+    def test_handles_are_issued_and_a_capture_is_cited_by_its_id(self):
+        """Decision 0009: from must be an issued handle, issued by the day the knowledge was given and
+        not withdrawn; a record outside the register is capture:<id>; the list never holds a name."""
+        d = copy_register()
+        p = d / "relationships" / "realizes.toml"
+        text = p.read_text()
+        def run(el, today=dt.date(2026, 11, 3)):
+            p.write_text(text.replace('id = "REL-04001"', 'id = "REL-04001"\nelicited = ' + el, 1))
+            f, _ = check_register.run(d, today=today)
+            return [i["message"] for i in f.items if i["check"] in ("elicited", "handles")]
+        self.assertEqual(run('{ from = "employee-1", on = 2026-11-02, record = "capture:2026-11-02-ORG-0002-employee-1" }'), [])
+        self.assertTrue(any("not an issued handle" in m for m in run('{ from = "john-doe", on = 2026-11-02, record = "capture:x" }')))
+        self.assertTrue(any("not yet issued" in m for m in run('{ from = "employee-1", on = 2026-11-01, record = "capture:x" }')))
+        self.assertTrue(any("cited as capture:<id>" in m for m in run('{ from = "employee-1", on = 2026-11-02, record = "instance:subjects/x.toml" }')))
+        h = d / "people" / "handles.toml"
+        h.write_text(h.read_text() + '\n[[handle]]\nhandle = "employee-9"\nname = "John Doe"\nunit = "ORG-0002"\nroles = ["rules"]\nissued = 2026-11-02\n')
+        msgs = run('{ from = "employee-1", on = 2026-11-02, record = "capture:x" }')
+        self.assertTrue(any("never a name" in m for m in msgs) and any("roles ['rules'] unknown" in m for m in msgs), msgs)
 
     def test_glossary_forbids_synonyms(self):
         d = copy_register()
