@@ -30,7 +30,7 @@ class RegisterChecks(unittest.TestCase):
     def test_the_register_is_clean(self):
         f, summary = check_register.run(ROOT, today=TODAY)
         self.assertEqual([i for i in f.items if i["level"] == "error"], [], f.items)
-        self.assertEqual(summary["nodes"], 56)   # 27 of the CargoQuote slice, 29 of the J-F slice (decisions 0005 and 0006)
+        self.assertEqual(summary["nodes"], 57)   # 28 of the CargoQuote slice (ORG-0004 by decision 0011), 29 of the J-F slice (decisions 0005 and 0006)
         self.assertEqual(summary["C1"]["uncovered"], [])
         self.assertEqual(summary["C1"]["excepted"], 1)   # EXC-0001 on the touchpoint
         self.assertEqual(summary["C2"]["uncovered"], [])
