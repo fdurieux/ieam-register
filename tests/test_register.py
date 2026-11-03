@@ -105,6 +105,29 @@ class RegisterChecks(unittest.TestCase):
         msgs = run('{ from = "employee-1", on = 2026-11-02, record = "capture:x" }')
         self.assertTrue(any("never a name" in m for m in msgs) and any("roles ['rules'] unknown" in m for m in msgs), msgs)
 
+    def test_the_walk_starts_from_every_kind_something_rests_on(self):
+        """Decision 0010: from a capability, an information entity, a product or a journey step the
+        walk reaches what rests on it; only nodes with no links of their own (domains, portfolios)
+        reach nothing; and direction keeps the answer specific: starts do not collapse to one set."""
+        reg = load_register(ROOT)
+        kinds = {"capability_domain", "capability", "sub_capability", "business_entity", "logical_entity",
+                 "information_domain", "portfolio", "family", "product", "variant", "step", "touchpoint"}
+        zero = sorted(nid for nid, n in reg["nodes"].items()
+                      if n.get("state") == "approved" and n["kind"] in kinds - {"touchpoint"}
+                      and not impact.reached(impact.walk(reg, nid)))
+        self.assertEqual({reg["nodes"][z]["kind"] for z in zero}, {"capability_domain", "information_domain", "portfolio"}, zero)
+        self.assertEqual(len(zero), 6)
+        ent = impact.reached(impact.walk(reg, "ENT-0003"))
+        self.assertIn("APP-0002", ent)            # manages, inverse: the application that manages the entity
+        self.assertIn("PROC-0002", ent)           # crud, inverse: a process that reads or writes it
+        self.assertEqual(impact.reached(impact.walk(reg, "CAP-0002")), {"PRD-0002", "PROC-0001", "JRN-0001"})
+        self.assertIn("PROC-0004", impact.reached(impact.walk(reg, "JRN-0003")))   # is_supported_by, forward
+        sets = {frozenset(impact.reached(impact.walk(reg, s))) for s in ("CAP-0002", "ENT-0003", "PRD-0002", "JRN-0003", "APP-0002")}
+        self.assertGreaterEqual(len(sets), 4, "starts answer their own question; walking every link both ways would give one set")
+        # owns and maps_to are never walk edges
+        self.assertNotIn("owns", {r for spec in impact.FORWARD.values() for r, _ in spec})
+        self.assertNotIn("maps_to", {r for spec in impact.FORWARD.values() for r, _ in spec})
+
     def test_glossary_forbids_synonyms(self):
         d = copy_register()
         p = d / "products" / "PRD-0002.toml"
