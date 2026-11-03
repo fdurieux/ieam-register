@@ -1,6 +1,6 @@
 # 0010 — The impact walk starts from every kind something rests on
 
-Date: 2026-11-03. State: proposed (fdurieux reviews; approved by the merge). Supersedes: nothing;
+Date: 2026-11-03. State: approved (fdurieux, by the merge of #14 on 2026-11-03; the line read proposed when merged). Supersedes: nothing;
 extends decision 0007's walk, whose rule (approved links only, withdrawn edges reported and not
 followed) is unchanged.
 
