@@ -34,6 +34,7 @@ The opportunity canvas, SWOT and a drawing of this repository:
 | `capabilities/ products/ journeys/ processes/ applications/ information/ organisation/` | one TOML file per node: id, kind, name, parent, state, owner, a pointer to the source of record, an approval | **authoritative** |
 | `relationships/` | one file per relationship type: a type header (kinds, direction, inverse, cardinality per state, owner, evidence class, ARIS and Archi support status), then the links | **authoritative** |
 | `metamodel/` `glossary/` `mapping/` `decisions/` `exceptions/` | the design contract, the approved terms, the tested mapping matrix, decision records, expiring exceptions | **authoritative** |
+| `people/` | the handles issued to people who give knowledge: handle, unit, roles, dates; never a name (decision 0009) | **authoritative** |
 | `exports/<system>/<date>/` | a dated mirror of a source of record: a manifest of digests and ids, a reconciliation report | a mirror with provenance, never the record |
 | `reports/<date>/` | coverage, impact and reconciliation summaries, written at a tag | derived, never the record |
 | `tools/` | standard-library Python: the checker, reconcile, impact, inventory | |

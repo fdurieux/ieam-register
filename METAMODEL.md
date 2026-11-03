@@ -31,6 +31,12 @@ name or an address), the date, and the path of the record of the answer. Such a 
 review within `lifecycle.toml` `[review.evidence]` `elicited` months (six) of `on`. Decision 0008;
 knowgov's capture path writes the same three fields on the assertions it ingests.
 
+**Issued handles.** `people/handles.toml` (`types.toml` `[elicited]` `issued`) lists the handles
+the organisation has issued: handle, unit, roles (`gives`, `approves`, `closes`), issued and, once
+retired, withdrawn; never a name. When it exists, `from` must be listed and live on `on`. A record
+outside the register is `capture:<id>` (`external_record`), not resolved. The key from a handle to
+a person is the organisation's directory. Decision 0009.
+
 **What the register never holds.** The content of a node beyond its checked `name`: no
 attributes copied from ARIS, Archi or the EDM. The moment a file carries a field the tool owns,
 there are two records.
