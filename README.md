@@ -79,6 +79,7 @@ percentage to pass.
 ```
 python tools/impact.py --from APP-0002     # which products and journeys does retiring QuoteAPI touch
 python tools/impact.py --from ENT-0003     # which processes, applications and products rest on the quote entity
+python tools/impact.py --from CAP-0002 --walk realisers   # which processes and applications implement pricing (proposed, decision 0012)
 python tools/check_register.py             # C1: journey steps without a process; C2: capabilities without a realising process
 python tools/inventory.py > caps.txt       # the capability inventory for pumllint trace --fail-on-uncovered
 ```
