@@ -1,6 +1,6 @@
 # 0016 — The impact walk's edge cases: descent below a withdrawn descendant, the start, the walk named
 
-Date: 2026-11-04. State: proposed. Supersedes: nothing; settles three points decisions 0012 and
+Date: 2026-11-04. State: approved (fdurieux, by the merge of #25 on 2026-11-04; the line read proposed when merged). Supersedes: nothing; settles three points decisions 0012 and
 0014 left open, whose rows, rule and default are unchanged. Restates one sentence of 0014's "Why"
 (point 3); 0014 is not edited.
 

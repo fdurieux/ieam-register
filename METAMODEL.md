@@ -45,6 +45,7 @@ what rests on it (decisions 0007 and 0010): one row of `FORWARD` per start taxon
 (`REALISERS`, decision 0012): a capability to the processes that realise it and the
 applications that support them; the default stays `dependants`.
 `--children` (`walk_children`, decision 0014) also starts from every approved descendant by `parent`, each by its own row; others reported withdrawn; off by default.
+The start is never among what a walk reaches, with or without `--children`: an edge back to it is reported, not counted; below a withdrawn descendant the descent continues to approved ones (decision 0016).
 
 **What the register never holds.** The content of a node beyond its checked `name`: no
 attributes copied from ARIS, Archi or the EDM. The moment a file carries a field the tool owns,
