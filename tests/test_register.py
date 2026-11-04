@@ -171,12 +171,51 @@ class RegisterChecks(unittest.TestCase):
         for p, g in got.items():
             self.assertFalse({e["from"] for e in g["edges"]} & withdrawn, p)   # reported, not walked
             self.assertFalse(g["reached"] & ({p} | {d["id"] for d in g["descendants"]}), p)
-        # JRN-0002 reaches itself without the option (back through PRD-0002); with it, the start is not reached
-        self.assertIn("JRN-0002", impact.reached(impact.walk(reg, "JRN-0002")))
+        # decision 0016: JRN-0002 is not reached by its own walk, with or without the option
+        self.assertNotIn("JRN-0002", impact.reached(impact.walk(reg, "JRN-0002")))
         self.assertNotIn("JRN-0002", got["JRN-0002"]["reached"])
         # each descendant by its own taxonomy's row of the walk chosen
         self.assertEqual(impact.walk_children(reg, "CAP-0001", impact.REALISERS)["reached"],
                          {"PROC-0002", "PROC-0003", "PROC-0004", "APP-0002", "APP-0003", "APP-0004"})
+
+    def test_the_start_is_never_reached(self):
+        """Decision 0016, point 2: the plain walk never counts its start; an edge back to it is reported
+        and marked, not counted; 19 dependants starts lose themselves and nothing else; the realisers walk
+        and the edges walked are unchanged."""
+        reg = load_register(ROOT)
+        changed = {}
+        for nid in reg["nodes"]:
+            edges = impact.walk(reg, nid)
+            got = impact.reached(edges)
+            self.assertNotIn(nid, got, nid)
+            self.assertNotIn(nid, impact.reached(impact.walk(reg, nid, impact.REALISERS)), nid)
+            self.assertFalse(any(e["to_start"] for e in impact.walk(reg, nid, impact.REALISERS)), nid)
+            back = [e for e in edges if e["to_start"]]
+            self.assertTrue(all(e["to"] == nid for e in back), nid)
+            if any(e["live"] for e in back):
+                self.assertEqual(got, {e["to"] for e in edges if e["live"]} - {nid}, nid)
+                changed[nid] = len(got)
+        self.assertEqual(changed, {"JRN-0001": 2, "JRN-0002": 5, "JRN-0003": 5, "JRN-0005": 2, "JRN-0006": 10,
+                                   "JRN-0007": 7, "JRN-0009": 4, "JRN-0010": 4, "JRN-0011": 4, "PRD-0002": 2,
+                                   "PRD-0004": 2, "PRD-0005": 4, "PROC-0001": 2, "PROC-0002": 5, "PROC-0004": 5,
+                                   "PROC-0006": 4, "PROC-0007": 10, "PROC-0008": 7, "PROC-0010": 2})
+        # the edge back is still reported: PRD-0002's walk meets JRN-0001 and PROC-0001 pointing back
+        self.assertEqual(sorted(e["from"] for e in impact.walk(reg, "PRD-0002") if e["to_start"]), ["JRN-0001", "PROC-0001"])
+
+    def test_the_descent_continues_below_a_withdrawn_descendant(self):
+        """Decision 0016, point 1: on a copy where approved CAP-0002 sits below proposed CAP-0005,
+        CAP-0005 is reported withdrawn and not walked, and CAP-0002 is still walked by its own row."""
+        d = copy_register()
+        p = d / "capabilities" / "CAP-0002.toml"
+        p.write_text(p.read_text().replace('parent = "CAP-0001"', 'parent = "CAP-0005"'))
+        reg = load_register(d)
+        got = impact.walk_children(reg, "CAP-0001", impact.REALISERS)
+        self.assertEqual([(x["id"], x["live"]) for x in got["descendants"]],
+                         [("CAP-0003", True), ("CAP-0004", True), ("CAP-0005", False), ("CAP-0002", True)])   # depth first
+        self.assertNotIn("CAP-0005", {e["from"] for e in got["edges"]})
+        self.assertIn("CAP-0002", {e["from"] for e in got["edges"]})
+        self.assertLessEqual({"PROC-0004", "APP-0003"}, got["reached"])   # what realises CAP-0002
+        self.assertEqual(impact.walk_children(reg, "CAP-0005", impact.REALISERS)["reached"], {"PROC-0004", "APP-0003"})
 
     def test_an_approved_child_of_a_deprecated_parent_is_a_finding(self):
         """Decision 0015: approved child of a deprecated or retired parent an error, proposed or draft
