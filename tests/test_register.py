@@ -151,6 +151,51 @@ class RegisterChecks(unittest.TestCase):
         self.assertEqual(impact.walk(reg, "CAP-0001", impact.REALISERS), [])   # a domain: parent is not descended
         self.assertFalse({r for spec in impact.REALISERS.values() for r, _ in spec} & {"owns", "maps_to"})
 
+    def test_the_walk_descends_parent_on_request(self):
+        """Decision 0014: --children walks from the start and from every approved descendant, each by
+        its own row; others are reported withdrawn and not walked; the union excludes the start and its
+        descendants; off by default, walk() unchanged."""
+        reg = load_register(ROOT)
+        self.assertEqual(impact.walk(reg, "CAP-0001"), [])   # the default: parent is not descended
+        parents = sorted({n["parent"] for n in reg["nodes"].values() if n.get("parent")})
+        self.assertEqual(len(parents), 14)
+        got = {p: impact.walk_children(reg, p) for p in parents}
+        self.assertEqual({p: len(g["reached"]) for p, g in got.items()},
+                         {"CAP-0001": 3, "CAP-0006": 8, "ENT-0001": 11, "ENT-0006": 16, "PRD-0001": 2, "PRD-0003": 6,
+                          "APP-0001": 11, "APP-0005": 15, "PROC-0001": 7, "PROC-0006": 11, "JRN-0001": 6, "JRN-0005": 8,
+                          "JRN-0002": 5, "PROC-0007": 10})
+        self.assertTrue(all(g["reached"] for g in got.values()), "every parent reaches something with the option")
+        self.assertEqual(got["CAP-0001"]["reached"], {"PRD-0002", "PROC-0001", "JRN-0001"})
+        withdrawn = {d["id"] for g in got.values() for d in g["descendants"] if not d["live"]}
+        self.assertEqual(withdrawn, {"CAP-0005", "ENT-0005", "PROC-0005", "JRN-0008"})
+        for p, g in got.items():
+            self.assertFalse({e["from"] for e in g["edges"]} & withdrawn, p)   # reported, not walked
+            self.assertFalse(g["reached"] & ({p} | {d["id"] for d in g["descendants"]}), p)
+        # JRN-0002 reaches itself without the option (back through PRD-0002); with it, the start is not reached
+        self.assertIn("JRN-0002", impact.reached(impact.walk(reg, "JRN-0002")))
+        self.assertNotIn("JRN-0002", got["JRN-0002"]["reached"])
+        # each descendant by its own taxonomy's row of the walk chosen
+        self.assertEqual(impact.walk_children(reg, "CAP-0001", impact.REALISERS)["reached"],
+                         {"PROC-0002", "PROC-0003", "PROC-0004", "APP-0002", "APP-0003", "APP-0004"})
+
+    def test_an_approved_child_of_a_deprecated_parent_is_a_finding(self):
+        """Decision 0015: approved child of a deprecated or retired parent an error, proposed or draft
+        a warning, deprecated, retired or rejected none; nothing on the register as it stands."""
+        def parent_findings(f):
+            return [(i["level"], i["where"]) for i in f.items if i["check"] == "lifecycle" and "has parent" in i["message"]]
+        f, _ = check_register.run(ROOT, today=TODAY)
+        self.assertEqual(parent_findings(f), [])
+        d = copy_register()
+        p = d / "capabilities" / "CAP-0001.toml"
+        p.write_text(p.read_text().replace('state = "approved"', 'state = "deprecated"'))
+        f, _ = check_register.run(d, today=TODAY)
+        self.assertEqual(sorted(parent_findings(f)), [("error", "capabilities/CAP-0002.toml"), ("error", "capabilities/CAP-0003.toml"),
+                                                      ("error", "capabilities/CAP-0004.toml"), ("warning", "capabilities/CAP-0005.toml")])
+        c = d / "capabilities" / "CAP-0002.toml"
+        c.write_text(c.read_text().replace('state = "approved"', 'state = "deprecated"'))
+        f, _ = check_register.run(d, today=TODAY)
+        self.assertNotIn("capabilities/CAP-0002.toml", [w for _, w in parent_findings(f)])
+
     def test_glossary_forbids_synonyms(self):
         d = copy_register()
         p = d / "products" / "PRD-0002.toml"

@@ -1,6 +1,6 @@
 # 0015 — An approved child of a deprecated or retired parent is a finding
 
-Date: 2026-11-04. State: proposed. Supersedes: nothing; extends the lifecycle rule that an
+Date: 2026-11-04. State: approved (fdurieux, by the merge of #23 on 2026-11-04; the line read proposed when merged). Supersedes: nothing; extends the lifecycle rule that an
 approved link referencing a deprecated or retired node is an error (`tools/check_register.py`;
 README.md, "Deprecating a node fails the check on every approved link that still references it"),
 whose wording is unchanged.
