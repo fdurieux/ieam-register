@@ -128,6 +128,29 @@ class RegisterChecks(unittest.TestCase):
         self.assertNotIn("owns", {r for spec in impact.FORWARD.values() for r, _ in spec})
         self.assertNotIn("maps_to", {r for spec in impact.FORWARD.values() for r, _ in spec})
 
+    def test_the_realiser_walk_is_a_second_named_walk(self):
+        """Decision 0012 (proposed): from a capability, the processes that realise it and the
+        applications that support them; the dependants walk stays the default and unchanged, and the
+        two walks never meet on a capability of either slice."""
+        reg = load_register(ROOT)
+        self.assertEqual(impact.REALISERS, {"capabilities": [("realizes", False)], "processes": [("supports", False)]})
+        self.assertIs(impact.WALKS["dependants"], impact.FORWARD)
+        realisers = {c: impact.reached(impact.walk(reg, c, impact.REALISERS)) for c in
+                     ("CAP-0002", "CAP-0003", "CAP-0004", "CAP-0007", "CAP-0008")}
+        self.assertEqual(realisers, {"CAP-0002": {"PROC-0004", "APP-0003"}, "CAP-0003": {"PROC-0003", "APP-0004"},
+                                     "CAP-0004": {"PROC-0002", "APP-0002"}, "CAP-0007": {"PROC-0007", "APP-0006", "APP-0008"},
+                                     "CAP-0008": {"PROC-0008", "APP-0007"}})
+        for c, got in realisers.items():
+            self.assertFalse(got & impact.reached(impact.walk(reg, c)), c)
+        # the three CargoQuote capabilities share one dependants answer; the realiser walk tells them apart
+        self.assertEqual(len({frozenset(impact.reached(impact.walk(reg, c))) for c in ("CAP-0002", "CAP-0003", "CAP-0004")}), 1)
+        self.assertEqual(len({frozenset(realisers[c]) for c in ("CAP-0002", "CAP-0003", "CAP-0004")}), 3)
+        # decision 0007's rule holds: CAP-0005's only realizes link is proposed, reported and not followed
+        edges = impact.walk(reg, "CAP-0005", impact.REALISERS)
+        self.assertEqual([(e["to"], e["live"]) for e in edges], [("PROC-0005", False)])
+        self.assertEqual(impact.walk(reg, "CAP-0001", impact.REALISERS), [])   # a domain: parent is not descended
+        self.assertFalse({r for spec in impact.REALISERS.values() for r, _ in spec} & {"owns", "maps_to"})
+
     def test_glossary_forbids_synonyms(self):
         d = copy_register()
         p = d / "products" / "PRD-0002.toml"
