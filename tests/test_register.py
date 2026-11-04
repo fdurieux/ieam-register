@@ -129,7 +129,7 @@ class RegisterChecks(unittest.TestCase):
         self.assertNotIn("maps_to", {r for spec in impact.FORWARD.values() for r, _ in spec})
 
     def test_the_realiser_walk_is_a_second_named_walk(self):
-        """Decision 0012 (proposed): from a capability, the processes that realise it and the
+        """Decision 0012: from a capability, the processes that realise it and the
         applications that support them; the dependants walk stays the default and unchanged, and the
         two walks never meet on a capability of either slice."""
         reg = load_register(ROOT)
