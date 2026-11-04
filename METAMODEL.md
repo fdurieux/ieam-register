@@ -40,7 +40,7 @@ a person is the organisation's directory. Decision 0009.
 **The impact walk.** `tools/impact.py` follows approved links only, from the thing changed to
 what rests on it (decisions 0007 and 0010): one row of `FORWARD` per start taxonomy, `owns` and
 `maps_to` never walked, `parent` not descended. A second, named walk, `--walk realisers`
-(`REALISERS`, decision 0012, proposed): a capability to the processes that realise it and the
+(`REALISERS`, decision 0012): a capability to the processes that realise it and the
 applications that support them; the default stays `dependants`.
 
 **What the register never holds.** The content of a node beyond its checked `name`: no

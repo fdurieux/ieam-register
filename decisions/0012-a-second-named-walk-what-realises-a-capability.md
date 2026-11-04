@@ -1,6 +1,6 @@
 # 0012 — A second, named walk: what realises a capability
 
-Date: 2026-11-04. State: proposed (fdurieux reviews; approved by the merge). Supersedes: nothing;
+Date: 2026-11-04. State: approved (fdurieux, by the merge of #18 on 2026-11-04; the line read proposed when merged). Supersedes: nothing;
 answers the question decision 0010 left open, whose rows and default are unchanged.
 
 ## Decision

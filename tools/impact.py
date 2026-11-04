@@ -5,7 +5,7 @@ not followed and not counted among what was reached (decision 0007). It starts f
 kind that something rests on (decision 0010). The IEAM's own question: which journeys and products
 would be affected by retiring this module, changing this capability or this information entity?
 
-A second, named walk (decision 0012, proposed) answers what implements a capability: the processes
+A second, named walk (decision 0012) answers what implements a capability: the processes
 that realise it and the applications that support those processes. Same rule, other rows.
 
     python tools/impact.py --from APP-0002
@@ -36,7 +36,7 @@ FORWARD = {
 }
 
 
-# what implements a capability (decision 0012, proposed): the processes that realise it (realizes
+# what implements a capability (decision 0012): the processes that realise it (realizes
 # inverse), then the applications that support those processes (supports inverse). It stops there:
 # an application has no row, so the walk never turns back towards what rests on the capability.
 REALISERS = {

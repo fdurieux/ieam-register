@@ -22,7 +22,7 @@ overdue_is_error = false     # a warning in the report unless a kind says otherw
 [review.kinds]
 capability = { months = 12 }
 product = { months = 6 }
-# Decision 0013 (proposed): the kinds a key on the API's response rests on. Where the shipper meets
+# Decision 0013: the kinds a key on the API's response rests on. Where the shipper meets
 # the product, at the product's cadence; the module and the entity beneath, at the capability's.
 step = { months = 6 }
 touchpoint = { months = 6 }

@@ -1,6 +1,6 @@
 # 0013 — Review months for step, touchpoint, module and business entity
 
-Date: 2026-11-04. State: proposed (fdurieux reviews; approved by the merge). Supersedes: nothing;
+Date: 2026-11-04. State: approved (fdurieux, by the merge of #19 on 2026-11-04; the line read proposed when merged). Supersedes: nothing;
 extends `metamodel/lifecycle.toml` `[review.kinds]`, whose two rows (capability 12, product 6) and
 `default_months = 12` are unchanged.
 
