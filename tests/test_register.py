@@ -273,7 +273,31 @@ class RegisterChecks(unittest.TestCase):
         self.assertEqual(r["files"]["deleted"], [])
         self.assertEqual(len(r["files"]["added"]), 10)
         self.assertEqual(r["stale_nodes"], [])
+        self.assertEqual(r["unregistered"], [{"kit_path": "kit/links.toml", "name": "links.toml"},
+                                             {"kit_path": "tests_input/acceptance.feature", "name": "acceptance.feature"}])
         self.assertTrue((d / "exports" / "kit" / "2026-10-30" / "RECONCILE.json").exists())
+
+    def test_reconcile_lists_unregistered_ids(self):
+        """Decision 0017: the export's ids no node carries, a finding; stale_nodes unchanged; counted in the summary."""
+        d = copy_register()
+        jef = reconcile.reconcile(d / "exports" / "jef_kit" / "2026-11-01", d)
+        man = load_toml(d / "exports" / "jef_kit" / "2026-11-01" / "MANIFEST.toml")
+        self.assertEqual(len(jef["unregistered"]), 35)
+        self.assertTrue(all(e["name"] == man["ids"][e["kit_path"]] for e in jef["unregistered"]))
+        self.assertIn({"kit_path": "CHANGES.md", "name": "CHANGES.md"}, jef["unregistered"])
+        self.assertEqual(jef["stale_nodes"], [])
+        self.assertEqual(reconcile.reconcile(d / "exports" / "kit" / "2026-10-30", d)["stale_nodes"], [])
+        # a node removed from the copy moves its id into unregistered; reconcile writes no node
+        before = sorted(p.relative_to(d).as_posix() for p in d.glob("*/*.toml"))
+        (d / "applications" / "APP-0005.toml").unlink()   # the one node carrying uml/component.puml
+        after = reconcile.reconcile(d / "exports" / "jef_kit" / "2026-11-01", d)
+        self.assertIn({"kit_path": "uml/component.puml", "name": "component.puml"}, after["unregistered"])
+        self.assertEqual(len(after["unregistered"]), 36)
+        self.assertEqual(sorted(p.relative_to(d).as_posix() for p in d.glob("*/*.toml")), [b for b in before if b != "applications/APP-0005.toml"])
+        _, summary = check_register.run(ROOT, today=TODAY)
+        self.assertEqual(summary["exports"]["kit"], {"export": "exports/kit/2026-10-30", "denominator": 10, "registered": 8, "unregistered": 2})
+        self.assertEqual(summary["exports"]["jef_kit"]["unregistered"], 35)
+        self.assertEqual(summary["exports"]["jef_kit"]["denominator"], 50)
 
 
 if __name__ == "__main__":

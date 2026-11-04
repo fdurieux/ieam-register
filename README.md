@@ -90,6 +90,10 @@ realise it and the applications that support those processes, each with its link
 `--children` answers "what does retiring or changing this group touch?": the walk also starts from
 every approved node below it by `parent`, and you get back that list of nodes, any not approved
 marked withdrawn and not walked, followed by everything they reach together.
+`python tools/reconcile.py exports/<system>/<date>` answers "what does this export carry that the
+register does not hold?": its `RECONCILE.json` lists them under `unregistered`, each with its id and
+its name as the export gives it, for you to triage; no node is created. The checker prints the
+latest export's count per system against the ids the export carries (decision 0017).
 
 ## What is not here yet
 
