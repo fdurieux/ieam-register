@@ -35,6 +35,18 @@ state to `approved` or `deprecated`, a new relationship type, a metamodel
 field, a glossary term) needs a decision record in the same pull request
 and is named in the approval's `record`.
 
+A hosted session cannot push a tag: the owner publishes each `v*` Release in the GitHub UI on a
+merge commit, typing the tag as new. When a merge is ready to be tagged, the session that merged it
+hands the owner, in its reply, the tag, the target commit, a one-line title
+(`vX.Y.Z — <what moved>`) and a Markdown description ready to paste. The description covers:
+- what changed, in a few sentences;
+- each decision record carried, with its pull requests;
+- what is unchanged (links, relationship types, the glossary) where that matters;
+- why it matters to a consumer such as knowgov;
+- the checker's counts (nodes, links, errors) and the test count;
+- the compare link to the previous tag.
+It restates the decision records and never adds a claim they lack.
+
 ## Things that are contracts, not details
 
 - **Ids** are `<PREFIX>-<4+ digits>`, minted here, never reused, never
