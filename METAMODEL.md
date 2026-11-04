@@ -24,6 +24,8 @@ IEAM's four plus `unverified`, the starting value, so an untested row cannot pas
 **Lifecycle.** `draft → proposed → approved → deprecated → retired`, `rejected` from `proposed`,
 `draft` again from `rejected`, `approved` again from `deprecated`. The checker diffs states
 against a git ref and refuses a skipped transition. Four eyes: the approver is not the author.
+An approved child of a deprecated or retired parent is a `lifecycle` error, a proposed or draft
+one a warning (decision 0015).
 
 **Knowledge a person gave.** A link whose content rests on what a person said carries
 `elicited = { from, on, record }`: an opaque handle (`types.toml` `[elicited]` `handle`, never a
@@ -39,9 +41,10 @@ a person is the organisation's directory. Decision 0009.
 
 **The impact walk.** `tools/impact.py` follows approved links only, from the thing changed to
 what rests on it (decisions 0007 and 0010): one row of `FORWARD` per start taxonomy, `owns` and
-`maps_to` never walked, `parent` not descended. A second, named walk, `--walk realisers`
+`maps_to` never walked, `parent` not descended by `walk`. A second, named walk, `--walk realisers`
 (`REALISERS`, decision 0012): a capability to the processes that realise it and the
 applications that support them; the default stays `dependants`.
+`--children` (`walk_children`, decision 0014) also starts from every approved descendant by `parent`, each by its own row; others reported withdrawn; off by default.
 
 **What the register never holds.** The content of a node beyond its checked `name`: no
 attributes copied from ARIS, Archi or the EDM. The moment a file carries a field the tool owns,

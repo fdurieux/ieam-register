@@ -1,6 +1,6 @@
 # 0014 — The impact walk descends `parent` on request
 
-Date: 2026-11-04. State: proposed. Supersedes: nothing; answers the question decisions 0007, 0010
+Date: 2026-11-04. State: approved (fdurieux, by the merge of #23 on 2026-11-04; the line read proposed when merged). Supersedes: nothing; answers the question decisions 0007, 0010
 and 0012 left open ("whether either walk descends `parent`"), whose rows, rule and default are
 unchanged.
 
