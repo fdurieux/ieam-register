@@ -1,6 +1,6 @@
 # 0017 — Reconcile lists the export ids no node carries
 
-Date: 2026-11-04. State: proposed. Supersedes: nothing; extends `tools/reconcile.py` and the
+Date: 2026-11-04. State: approved (fdurieux, by the merge of #27 on 2026-11-04; the line read proposed when merged). Supersedes: nothing; extends `tools/reconcile.py` and the
 `RECONCILE.json` it writes (decision 0001, "Exports are append-only"), whose `files`, `ids` and
 `stale_nodes` sections are unchanged.
 
