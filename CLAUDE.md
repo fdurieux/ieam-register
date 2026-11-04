@@ -47,6 +47,16 @@ hands the owner, in its reply, the tag, the target commit, a one-line title
 - the compare link to the previous tag.
 It restates the decision records and never adds a claim they lack.
 
+Two artifact pages are the maintainer's running view of this register, knowgov and pumllint:
+the queue (https://claude.ai/code/artifact/a6e5007e-36f8-4a94-b3de-3ba2690512cc) and the
+reconciliation (https://claude.ai/code/artifact/c3e39034-e727-430b-8170-8ca152ea9b80). A merged
+pull request refreshes both in the same turn, without being asked. In the queue, that means the
+link with a one-line what-and-why, plus any row whose state it changes (a decision proposed or
+approved, a tag to publish). In the reconciliation's Record, it means a line when the merge bears
+on the loops. A coordinating session, when one dispatches the work, writes the pages; its
+sub-sessions report and never publish. The decision records are the record, and the pages quote
+them. A session that cannot reach the pages says so.
+
 ## Things that are contracts, not details
 
 - **Ids** are `<PREFIX>-<4+ digits>`, minted here, never reused, never
