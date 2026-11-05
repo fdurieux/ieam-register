@@ -1,6 +1,6 @@
 # 0019 — Four eyes when a session drafts the pull request
 
-Date: 2026-11-05. State: proposed. Supersedes: nothing; states what `four_eyes` in
+Date: 2026-11-05. State: approved (fdurieux, on 2026-11-05: "approve decision 0019"; recorded on #30 before its merge). Supersedes: nothing; states what `four_eyes` in
 `metamodel/lifecycle.toml` ("the approver may not be the pull request's author") means when an
 assistant session drafts the pull request. Raised by the session that drafted decision 0018 (#29),
 in its closing report.
