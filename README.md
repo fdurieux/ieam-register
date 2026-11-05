@@ -72,7 +72,10 @@ Errors fail the merge; warnings are reported. Three coverage rules carry excepti
 C1, an approved journey step or touchpoint has a supporting process; C2, a capability an
 approved product requires has a realising process; C3, a realising process names a diagram of
 record. Coverage is always reported with its denominator and its exceptions; it is never a
-percentage to pass.
+percentage to pass. One further rule warns and never fails (A1, decision 0018, proposed): an
+approved product that no journey concerns, a capability the product requires that none of its
+journey's steps reaches by the thread walk, and a capability those steps reach that the product
+does not require. The checker prints how many of the approved products are aligned.
 
 ## The questions the pilot answers
 
@@ -81,12 +84,17 @@ python tools/impact.py --from APP-0002     # which products and journeys does re
 python tools/impact.py --from ENT-0003     # which processes, applications and products rest on the quote entity
 python tools/impact.py --from CAP-0002 --walk realisers   # which processes and applications implement pricing (decision 0012)
 python tools/impact.py --from CAP-0001 --children         # which products and journeys rest on anything under freight quoting (decision 0014)
+python tools/impact.py --from JRN-0002 --walk thread      # which process, capability, application and data a journey step uses (decision 0018)
 python tools/check_register.py             # C1: journey steps without a process; C2: capabilities without a realising process
 python tools/inventory.py > caps.txt       # the capability inventory for pumllint trace --fail-on-uncovered
 ```
 
 `--walk realisers` answers "what implements this capability?": you get back the processes that
 realise it and the applications that support those processes, each with its link's state and owner.
+`--walk thread` answers "what does this journey step use?": you get back the process that supports
+the step, the capability that process realises, the applications that support it and the information
+entities the process reads or writes and the applications manage. From a journey, add `--children` to
+thread each of its steps.
 `--children` answers "what does retiring or changing this group touch?": the walk also starts from
 every approved node below it by `parent`, and you get back that list of nodes, any not approved
 marked withdrawn and not walked, followed by everything they reach together.

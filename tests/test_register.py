@@ -217,6 +217,83 @@ class RegisterChecks(unittest.TestCase):
         self.assertLessEqual({"PROC-0004", "APP-0003"}, got["reached"])   # what realises CAP-0002
         self.assertEqual(impact.walk_children(reg, "CAP-0005", impact.REALISERS)["reached"], {"PROC-0004", "APP-0003"})
 
+    def test_the_thread_walk_goes_from_a_step_down_to_its_data(self):
+        """Decision 0018, part (a): from a step, the process that supports it, the capability it realises,
+        the application that supports it and the information both use; one direction only, so no start
+        reaches its whole slice and starts keep their own answers; walked both ways, the same relationship
+        types collapse each start to its component."""
+        reg = load_register(ROOT)
+        self.assertEqual(impact.THREAD, {"journeys": [("is_supported_by", True)],
+                                         "processes": [("realizes", True), ("supports", False), ("crud", True)],
+                                         "applications": [("manages", True)]})
+        self.assertIs(impact.WALKS["thread"], impact.THREAD)
+        self.assertFalse({r for spec in impact.THREAD.values() for r, _ in spec} & {"owns", "maps_to"})
+        thread = {s: impact.reached(impact.walk(reg, s, impact.THREAD)) for s in ("JRN-0002", "JRN-0003", "JRN-0006", "JRN-0007", "JRN-0009")}
+        self.assertEqual(thread, {"JRN-0002": {"PROC-0002", "CAP-0004", "APP-0002", "ENT-0002", "ENT-0003"},
+                                  "JRN-0003": {"PROC-0004", "CAP-0002", "APP-0003", "ENT-0003", "ENT-0004"},
+                                  "JRN-0006": {"PROC-0007", "CAP-0007", "APP-0006", "APP-0008", "ENT-0008", "ENT-0009"},
+                                  "JRN-0007": {"PROC-0008", "CAP-0008", "APP-0007", "ENT-0008"},
+                                  "JRN-0009": {"PROC-0006", "APP-0005", "ENT-0007", "ENT-0010"}})
+        # decision 0007's rule: JRN-0003's proposed link to PROC-0005 and PROC-0006's deprecated crud link are reported, not followed
+        self.assertIn(("PROC-0005", False), [(e["to"], e["live"]) for e in impact.walk(reg, "JRN-0003", impact.THREAD)])
+        self.assertIn(("ENT-0010", False), [(e["to"], e["live"]) for e in impact.walk(reg, "JRN-0009", impact.THREAD)])
+        # parent adds starts, never steps (decision 0014): a journey reaches nothing alone, its steps' threads with --children
+        self.assertEqual(impact.walk(reg, "JRN-0001", impact.THREAD), [])
+        self.assertEqual(impact.walk_children(reg, "JRN-0001", impact.THREAD)["reached"],
+                         thread["JRN-0002"] | thread["JRN-0003"])
+        self.assertEqual(len(impact.walk_children(reg, "JRN-0005", impact.THREAD)["reached"]), 13)
+        # the measure: zero-reach starts and reach against the slice
+        approved = sorted(nid for nid, n in reg["nodes"].items() if n.get("state") == "approved")
+        self.assertEqual(len(approved), 53)
+        plain = {nid: impact.reached(impact.walk(reg, nid, impact.THREAD)) for nid in approved}
+        children = {nid: impact.walk_children(reg, nid, impact.THREAD)["reached"] for nid in approved}
+        self.assertEqual(sum(1 for r in plain.values() if not r), 33)
+        self.assertEqual(sum(1 for r in children.values() if not r), 30)
+        self.assertEqual(max(len(r) for r in plain.values()), 6)          # JRN-0006, of 29 J-F nodes
+        self.assertEqual(max(len(r) for r in children.values()), 13)      # JRN-0005 with --children, of 29
+        nonempty = [frozenset(r) for r in plain.values() if r]
+        self.assertEqual((len(nonempty), len(set(nonempty))), (20, 17))
+        # the same five relationship types walked both ways: every start reaches its whole component, five answers for 36 starts
+        both = {"journeys": [("is_supported_by", True)], "capabilities": [("realizes", False)],
+                "processes": [("is_supported_by", False), ("realizes", True), ("supports", False), ("crud", True)],
+                "applications": [("supports", True), ("manages", True)], "information": [("crud", False), ("manages", False)]}
+        comps = [frozenset(impact.reached(impact.walk(reg, nid, both)) | {nid}) for nid in approved if impact.reached(impact.walk(reg, nid, both))]
+        self.assertEqual((len(comps), len(set(comps))), (36, 5))
+        self.assertEqual(max(len(c) for c in comps), 12)
+
+    def test_products_and_journeys_align_at_warning_level(self):
+        """Decision 0018, part (b): A1 flags PRD-0002 (requires CAP-0003, which no step of JRN-0001 reaches),
+        PRD-0004 (JRN-0005 reaches CAP-0008, not required) and PRD-0005 (no journey); warnings, never errors;
+        each finding clears when the register is aligned on a copy."""
+        def a1(f):
+            return sorted((i["level"], i["where"], i["message"]) for i in f.items if i["check"] == "A1")
+        f, summary = check_register.run(ROOT, today=TODAY)
+        self.assertFalse(f.errors)
+        self.assertEqual([(lvl, w) for lvl, w, _ in a1(f)], [("warning", "products/PRD-0002.toml"), ("warning", "products/PRD-0004.toml"),
+                                                           ("warning", "products/PRD-0005.toml")])
+        self.assertEqual(summary["A1"], {"denominator": 3, "aligned": [], "no_journey": ["PRD-0005"],
+                                         "required_not_reached": [["PRD-0002", "CAP-0003"]],
+                                         "reached_not_required": [["PRD-0004", "CAP-0008"]]})
+        # on a copy: PRD-0004 requires CAP-0008; JRN-0002 is supported by PROC-0003 too; a journey concerns PRD-0005
+        d = copy_register()
+        r = d / "relationships" / "requires.toml"
+        r.write_text(r.read_text() + '\n[[link]]\nid = "REL-99001"\nsource = "PRD-0004"\ntarget = "CAP-0008"\nstate = "draft"\n'
+                     'rationale = "test"\nowner = "ORG-0003"\n')
+        reg = load_register(d)
+        self.assertEqual(check_register.check_alignment(reg, check_register.Findings())["reached_not_required"], [["PRD-0004", "CAP-0008"]])  # a draft link counts for nothing
+        r.write_text(r.read_text().replace('state = "draft"\nrationale = "test"', 'state = "approved"\nrationale = "test"'))
+        s = d / "relationships" / "is_supported_by.toml"
+        s.write_text(s.read_text() + '\n[[link]]\nid = "REL-99002"\nsource = "JRN-0002"\ntarget = "PROC-0003"\nstate = "approved"\n'
+                     'rationale = "test"\nowner = "ORG-0001"\n')
+        c = d / "relationships" / "concerns.toml"
+        c.write_text(c.read_text() + '\n[[link]]\nid = "REL-99003"\nsource = "JRN-0005"\ntarget = "PRD-0005"\nstate = "approved"\n'
+                     'rationale = "test"\nowner = "ORG-0003"\n')
+        got = check_register.check_alignment(load_register(d), check_register.Findings())
+        self.assertEqual(got["no_journey"], [])
+        self.assertEqual(got["required_not_reached"], [])
+        self.assertEqual(got["reached_not_required"], [])
+        self.assertEqual(got["aligned"], ["PRD-0002", "PRD-0004", "PRD-0005"])
+
     def test_an_approved_child_of_a_deprecated_parent_is_a_finding(self):
         """Decision 0015: approved child of a deprecated or retired parent an error, proposed or draft
         a warning, deprecated, retired or rejected none; nothing on the register as it stands."""
