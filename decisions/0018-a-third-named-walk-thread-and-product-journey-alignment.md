@@ -97,11 +97,30 @@ take through processes. Where the two disagree, either a link is missing or one 
 register cannot tell which, so it warns and names both sides. An error would fail every merge on the
 three findings the approved register carries today.
 
+## What the walk shows beyond A1
+
+A second knowgov study traced CargoQuote journey to step to process to application with
+`impact.py`. Re-measured here on the same base, each holds:
+
+- **Processes that support no step.** No approved `is_supported_by` link targets PROC-0001,
+  PROC-0003, PROC-0009 or PROC-0010, all approved. PROC-0003 (screening, supported by APP-0004)
+  reaches JRN-0001 only through PRD-0002 in the dependants walk; the thread walk from JRN-0001 never
+  meets it, which is A1's PRD-0002 finding.
+- **A proposed link.** REL-03003, JRN-0003 `is_supported_by` PROC-0005, is `proposed`: the thread
+  walk reports it withdrawn and does not follow it.
+- **Coarse grain.** JRN-0009, JRN-0010 and JRN-0011 are each supported only by the end-to-end
+  PROC-0006, itself supported only by APP-0005: the three steps get one and the same thread. The walk
+  is as fine as the links; it cannot tell the steps apart until a link names a finer process.
+- **The gap `crud` forward closes.** `FORWARD` walks `crud` only inverse, from an entity to its
+  processes; no walk today goes from a process to the information it reads or writes. `THREAD` does.
+
 ## Not decided here
 
 Which of the three findings is a missing link and which a wrong one: PRD-0002's CAP-0003 (a step
 for screening, or PROC-0003 under an existing step), PRD-0004's CAP-0008 (a `requires` link, or
 JRN-0007 under another journey), PRD-0005's journey. Each is a content change with its own record.
+A link JRN-0003 `is_supported_by` PROC-0003 would be a candidate for its owner, ORG-0001, to author
+and approve; the walk never assumes it. Whether the J-F steps get finer processes.
 Whether A1 ever becomes an error, or takes exceptions. Whether knowgov's register view adopts the
 thread walk at the next tag: its choice.
 
