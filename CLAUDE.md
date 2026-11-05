@@ -72,7 +72,9 @@ them. A session that cannot reach the pages says so.
   carries a field the tool owns, there are two records.
 - **Approval is a file-state change**: `state = "approved"` with
   `approval = { by, on, record }`, both owners on a cross-domain link,
-  the approver never the pull request's author. A merge records who
+  the approver never the change's author: for a pull request a session
+  drafted, the session named in its footer and `Claude-Session` trailers,
+  not the account GitHub shows (decision 0019). A merge records who
   changed the file; the approval block records who approved the content.
 - **Lifecycle transitions** follow `metamodel/lifecycle.toml`; the
   checker diffs against the base and refuses a skipped step. Deprecating

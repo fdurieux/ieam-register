@@ -23,7 +23,8 @@ IEAM's four plus `unverified`, the starting value, so an untested row cannot pas
 
 **Lifecycle.** `draft → proposed → approved → deprecated → retired`, `rejected` from `proposed`,
 `draft` again from `rejected`, `approved` again from `deprecated`. The checker diffs states
-against a git ref and refuses a skipped transition. Four eyes: the approver is not the author.
+against a git ref and refuses a skipped transition. Four eyes: the approver did not draft the change. For a pull request a session drafted, the session is the
+author, not the account GitHub shows, and a session never approves (decision 0019).
 An approved child of a deprecated or retired parent is a `lifecycle` error, a proposed or draft
 one a warning (decision 0015).
 
