@@ -1,6 +1,6 @@
 # 0018 — A third named walk, thread; product–journey alignment at warning level
 
-Date: 2026-11-05. State: proposed. Supersedes: nothing; adds a walk beside decisions 0010 and 0012,
+Date: 2026-11-05. State: approved (fdurieux, on 2026-11-05: "approve both parts of decision 0018"; recorded on #29 before its merge). Supersedes: nothing; adds a walk beside decisions 0010 and 0012,
 whose rows and default are unchanged, and a rule beside the coverage rules C1 to C3, which are
 unchanged. Asked for by knowgov doc-0022 K2 (the initiative-slicing study, fdurieux/knowgov#254).
 
@@ -114,7 +114,7 @@ A second knowgov study traced CargoQuote journey to step to process to applicati
 - **The gap `crud` forward closes.** `FORWARD` walks `crud` only inverse, from an entity to its
   processes; no walk today goes from a process to the information it reads or writes. `THREAD` does.
 
-## Not decided here
+## Not decided here; left to later records
 
 Which of the three findings is a missing link and which a wrong one: PRD-0002's CAP-0003 (a step
 for screening, or PROC-0003 under an existing step), PRD-0004's CAP-0008 (a `requires` link, or
@@ -128,5 +128,4 @@ thread walk at the next tag: its choice.
 
 As decision 0012 was: `THREAD` and `--walk thread` in `tools/impact.py`; `check_alignment` and the
 A1 line in `tools/check_register.py`; the two tests above (twenty-five in all); one README line per
-part; METAMODEL.md "The impact walk" two lines. If this is not approved, the pull request is not
-merged.
+part; METAMODEL.md "The impact walk" two lines.

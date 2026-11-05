@@ -72,7 +72,7 @@ Errors fail the merge; warnings are reported. Three coverage rules carry excepti
 C1, an approved journey step or touchpoint has a supporting process; C2, a capability an
 approved product requires has a realising process; C3, a realising process names a diagram of
 record. Coverage is always reported with its denominator and its exceptions; it is never a
-percentage to pass. One further rule warns and never fails (A1, decision 0018, proposed): an
+percentage to pass. One further rule warns and never fails (A1, decision 0018): an
 approved product that no journey concerns, a capability the product requires that none of its
 journey's steps reaches by the thread walk, and a capability those steps reach that the product
 does not require. The checker prints how many of the approved products are aligned.

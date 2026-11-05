@@ -46,8 +46,8 @@ what rests on it (decisions 0007 and 0010): one row of `FORWARD` per start taxon
 applications that support them; the default stays `dependants`.
 `--children` (`walk_children`, decision 0014) also starts from every approved descendant by `parent`, each by its own row; others reported withdrawn; off by default.
 The start is never among what a walk reaches, with or without `--children`: an edge back to it is reported, not counted; below a withdrawn descendant the descent continues to approved ones (decision 0016).
-A third, named walk, `--walk thread` (`THREAD`, decision 0018, proposed): a step to its supporting process (`is_supported_by`), the process to what it realises, the applications that support it and the information it reads or writes (`realizes`, `supports` inverse, `crud`), an application to what it manages (`manages`); every step away from the journey.
-Alignment rule A1 (`check_alignment`, decision 0018, proposed), warning only: an approved product with no approved journey; a capability it requires that its journeys' thread walk with `--children` does not reach; one reached that it does not require. Reported with its denominator; no exception mechanism.
+A third, named walk, `--walk thread` (`THREAD`, decision 0018): a step to its supporting process (`is_supported_by`), the process to what it realises, the applications that support it and the information it reads or writes (`realizes`, `supports` inverse, `crud`), an application to what it manages (`manages`); every step away from the journey.
+Alignment rule A1 (`check_alignment`, decision 0018), warning only: an approved product with no approved journey; a capability it requires that its journeys' thread walk with `--children` does not reach; one reached that it does not require. Reported with its denominator; no exception mechanism.
 
 **What the register never holds.** The content of a node beyond its checked `name`: no
 attributes copied from ARIS, Archi or the EDM. The moment a file carries a field the tool owns,

@@ -15,7 +15,7 @@ marked withdrawn, and not walked from. `parent` adds starts, never steps; off by
 The start is never counted among what a walk reaches (decision 0016): an edge back to it is reported
 and marked ``to_start``, not counted; below a withdrawn descendant the descent continues to approved ones.
 
-A third, named walk (decision 0018, proposed), `thread`, answers what a journey step uses, down to the
+A third, named walk (decision 0018), `thread`, answers what a journey step uses, down to the
 data: the process that supports it, the capability that process realises, the application that
 supports it and the information the process and the application read, write or manage.
 

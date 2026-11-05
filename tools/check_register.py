@@ -1,7 +1,7 @@
 """The register's checks: types, directions, required metadata, hierarchy cycles, duplicate
 identities, cardinalities, dangling links, lifecycle consistency, approvals, knowledge a person
 gave and the handles it is given under (decisions 0008, 0009), glossary, the coverage rules C1 to C3 with expiring exceptions, and the product–journey alignment
-rule A1 at warning level (decision 0018, proposed). Exit 1 on any error; warnings exit 0.
+rule A1 at warning level (decision 0018). Exit 1 on any error; warnings exit 0.
 
     python tools/check_register.py                 # check the working tree
     python tools/check_register.py --previous HEAD # also diff lifecycle states against a commit
