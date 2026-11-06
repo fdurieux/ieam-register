@@ -12,7 +12,14 @@ private repositories; nothing of it comes back here.
 
 The record it follows: pumllint `docs/ieam-register-proposal.md` (#239).
 This repository's own record is `decisions/`: one numbered file per
-decision, never edited after approval, superseded by a new one.
+decision, never edited after approval, superseded by a new one. Every
+decision carries four parts, whoever drafts it (maintainer, 2026-11-06):
+- an opportunity canvas;
+- a fit/gap against what it must satisfy;
+- a SWOT;
+- advice: the drafter's recommendation and its reasons.
+
+Approval stays the maintainer's word (decision 0019).
 
 ## Checks
 
