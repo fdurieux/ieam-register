@@ -28,6 +28,12 @@ author, not the account GitHub shows, and a session never approves (decision 001
 An approved child of a deprecated or retired parent is a `lifecycle` error, a proposed or draft
 one a warning (decision 0015).
 
+**Coverage.** C1 to C3 are the README's. C4 (decision 0020): an approved process with an approved
+`realizes` link to an approved capability is the target of an approved `supports` link from an approved
+application or module, or in the scope of an unexpired exception of rule C4: a process manual by design,
+or a phase-out whose `expires` is the date a replacement supports it. Both ends of both links approved, so
+a deprecated application supports nothing.
+
 **Knowledge a person gave.** A link whose content rests on what a person said carries
 `elicited = { from, on, record }`: an opaque handle (`types.toml` `[elicited]` `handle`, never a
 name or an address), the date, and the path of the record of the answer. Such a link is due for
