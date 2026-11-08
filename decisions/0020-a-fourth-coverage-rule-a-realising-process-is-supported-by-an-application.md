@@ -1,6 +1,7 @@
 # 0020 — A fourth coverage rule, C4: a realising process is supported by an application
 
-Date: 2026-11-06. State: proposed, not approved. Drafted by session_01HTAA1TvZjugTH7yWr98htT; approval is the
+Date: 2026-11-06. State: approved (fdurieux, on 2026-11-08: "approve ieam-register#32"; recorded on the pull request
+that carries #32's commits, before its merge). Drafted by session_01HTAA1TvZjugTH7yWr98htT; approval is the
 maintainer's word on the pull request (decision 0019). Supersedes: nothing; adds a rule beside the coverage
 rules C1 to C3, which are unchanged, and uses `exceptions/` as it is. Asked for by knowgov doc-0025 P3 (the
 application-lifecycle study, fdurieux/knowgov#321); the maintainer's acceptance of its advice on 2026-11-06,
