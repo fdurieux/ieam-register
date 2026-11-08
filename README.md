@@ -68,10 +68,11 @@ python tools/check_register.py --previous origin/main   # plus lifecycle transit
 python -m unittest discover -s tests
 ```
 
-Errors fail the merge; warnings are reported. Three coverage rules carry exceptions:
+Errors fail the merge; warnings are reported. Four coverage rules carry exceptions:
 C1, an approved journey step or touchpoint has a supporting process; C2, a capability an
 approved product requires has a realising process; C3, a realising process names a diagram of
-record. Coverage is always reported with its denominator and its exceptions; it is never a
+record; C4 (decision 0020), a realising process is supported by an approved application, so
+retiring an application with no replacement fails until an exception names the date. Coverage is always reported with its denominator and its exceptions; it is never a
 percentage to pass. One further rule warns and never fails (A1, decision 0018): an
 approved product that no journey concerns, a capability the product requires that none of its
 journey's steps reaches by the thread walk, and a capability those steps reach that the product
@@ -85,7 +86,7 @@ python tools/impact.py --from ENT-0003     # which processes, applications and p
 python tools/impact.py --from CAP-0002 --walk realisers   # which processes and applications implement pricing (decision 0012)
 python tools/impact.py --from CAP-0001 --children         # which products and journeys rest on anything under freight quoting (decision 0014)
 python tools/impact.py --from JRN-0002 --walk thread      # which process, capability, application and data a journey step uses (decision 0018)
-python tools/check_register.py             # C1: journey steps without a process; C2: capabilities without a realising process
+python tools/check_register.py             # C1: journey steps without a process; C2: capabilities without a realising process; C4: realising processes without an application
 python tools/inventory.py > caps.txt       # the capability inventory for pumllint trace --fail-on-uncovered
 ```
 

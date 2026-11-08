@@ -26,7 +26,7 @@ Approval stays the maintainer's word (decision 0019).
 ```bash
 python tools/check_register.py                      # the working tree; exit 1 on any error
 python tools/check_register.py --previous origin/main   # plus lifecycle transitions against a ref
-python -m unittest discover -s tests                # twenty-five tests, standard library only
+python -m unittest discover -s tests                # twenty-six tests, standard library only
 ```
 
 Both must pass. CI runs them on every pull request (with `--previous` set

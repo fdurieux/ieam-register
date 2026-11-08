@@ -35,6 +35,7 @@ class RegisterChecks(unittest.TestCase):
         self.assertEqual(summary["C1"]["excepted"], 1)   # EXC-0001 on the touchpoint
         self.assertEqual(summary["C2"]["uncovered"], [])
         self.assertEqual(summary["C3"]["uncovered"], [])
+        self.assertEqual(summary["C4"]["uncovered"], [])
 
     def test_dangling_link_is_an_error(self):
         d = copy_register()
@@ -331,6 +332,55 @@ class RegisterChecks(unittest.TestCase):
         p.write_text(p.read_text().replace('target = "CAP-0002"', 'target = "CAP-0003"'))
         f, summary = check_register.run(d, today=TODAY)
         self.assertIn("CAP-0002", summary["C2"]["uncovered"])
+
+    def test_coverage_c4_a_realising_process_is_supported_by_an_application(self):
+        """Decision 0020: C4 covers 5 of 5 on the register. On a copy, a withdrawn supports link or a deprecated
+        application leaves PROC-0004 uncovered, an error; a draft link covers nothing; an unexpired C4 exception
+        excuses it and an expired one stops excusing; a process that realises nothing, or only a proposed
+        capability, is outside the denominator."""
+        def c4_errors(f):
+            return [i["where"] for i in f.items if i["check"] == "C4"]
+        def withdraw(path: Path, link_id: str):
+            text = path.read_text()
+            head, sep, rest = text.partition(f'id = "{link_id}"')
+            path.write_text(head + sep + rest.replace('state = "approved"', 'state = "deprecated"', 1))
+        f, summary = check_register.run(ROOT, today=TODAY)
+        self.assertEqual(summary["C4"], {"denominator": 5, "covered": 5, "excepted": 0, "uncovered": []})
+        self.assertEqual(c4_errors(f), [])
+        # outside the denominator: PROC-0001, PROC-0006, PROC-0009, PROC-0010 realise nothing; PROC-0005 and CAP-0005 are proposed
+        reg = load_register(ROOT)
+        realizing = {ln["source"] for ln in reg["relationships"]["realizes"]["links"]}
+        self.assertEqual(sorted(realizing), ["PROC-0002", "PROC-0003", "PROC-0004", "PROC-0005", "PROC-0007", "PROC-0008"])
+        # a sunset without a replacement: TariffEngine's supports link to Price the quote withdrawn
+        d = copy_register()
+        sup = d / "relationships" / "supports.toml"
+        withdraw(sup, "REL-06003")
+        f, summary = check_register.run(d, today=TODAY)
+        self.assertEqual(summary["C4"], {"denominator": 5, "covered": 4, "excepted": 0, "uncovered": ["PROC-0004"]})
+        self.assertEqual(c4_errors(f), ["processes/PROC-0004.toml"])
+        # a draft link from another application covers nothing
+        sup.write_text(sup.read_text() + '\n[[link]]\nid = "REL-99010"\nsource = "APP-0002"\ntarget = "PROC-0004"\nstate = "draft"\n'
+                       'rationale = "test"\nowner = "ORG-0002"\n')
+        _, summary = check_register.run(d, today=TODAY)
+        self.assertEqual(summary["C4"]["uncovered"], ["PROC-0004"])
+        # a phase-out: an exception names the date by which a replacement supports the process
+        (d / "exceptions" / "EXC-9001.toml").write_text(
+            'id = "EXC-9001"\nrule = "C4"\nscope = ["PROC-0004"]\nrationale = "test: phase-out until the replacement supports pricing"\n'
+            'approved = { by = "fdurieux", on = 2026-10-30, record = "decisions/0020-a-fourth-coverage-rule-a-realising-process-is-supported-by-an-application.md" }\n'
+            'expires = 2027-03-31\n')
+        f, summary = check_register.run(d, today=TODAY)
+        self.assertEqual(summary["C4"], {"denominator": 5, "covered": 4, "excepted": 1, "uncovered": []})
+        self.assertEqual(c4_errors(f), [])
+        f, summary = check_register.run(d, today=dt.date(2027, 4, 1))
+        self.assertEqual(summary["C4"]["uncovered"], ["PROC-0004"])
+        self.assertTrue(any(i["check"] == "exceptions" and "EXC-9001" in i["where"] and "expired" in i["message"] for i in f.items))
+        # a deprecated application supports nothing, though its link still reads approved (itself a lifecycle error)
+        d = copy_register()
+        a = d / "applications" / "APP-0003.toml"
+        a.write_text(a.read_text().replace('state = "approved"', 'state = "deprecated"'))
+        f, summary = check_register.run(d, today=TODAY)
+        self.assertEqual(summary["C4"]["uncovered"], ["PROC-0004"])
+        self.assertTrue(any(i["check"] == "lifecycle" and "APP-0003" in i["message"] for i in f.items))
 
     def test_impact_reaches_the_product_and_the_journey(self):
         reg = load_register(ROOT)
