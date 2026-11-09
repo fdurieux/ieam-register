@@ -42,6 +42,13 @@ state to `approved` or `deprecated`, a new relationship type, a metamodel
 field, a glossary term) needs a decision record in the same pull request
 and is named in the approval's `record`.
 
+**Sub-sessions: model and effort fitted to the work** (maintainer, 2026-11-09). A coordinating session picks each sub-session's model and reasoning effort for what it will do, and names the choice in the brief and in its reply to the maintainer:
+- the most capable model at high effort for a build that crosses modules or moves a contract, and for every probe, re-probe and re-check;
+- the same model at medium effort for a narrow, well-specified contract build;
+- a faster, lower-cost model at medium effort for a fix-only task behind an unchanged contract, and for docs and wording.
+
+A cloud sub-session takes its model at launch, and its effort is stated in the brief. A subagent takes both directly. The model identifiers themselves stay out of the repository.
+
 A hosted session cannot push a tag: the owner publishes each `v*` Release in the GitHub UI on a
 merge commit, typing the tag as new. When a merge is ready to be tagged, the session that merged it
 hands the owner, in its reply, the tag, the target commit, a one-line title
