@@ -41,10 +41,14 @@ review within `lifecycle.toml` `[review.evidence]` `elicited` months (six) of `o
 knowgov's capture path writes the same three fields on the assertions it ingests.
 
 **Issued handles.** `people/handles.toml` (`types.toml` `[elicited]` `issued`) lists the handles
-the organisation has issued: handle, unit, roles (`gives`, `approves`, `closes`), issued and, once
-retired, withdrawn; never a name. When it exists, `from` must be listed and live on `on`. A record
-outside the register is `capture:<id>` (`external_record`), not resolved. The key from a handle to
-a person is the organisation's directory. Decision 0009.
+the organisation has issued: handle, unit, roles (`gives`, `approves`, `closes`), issued, an
+optional `person` and, once retired, withdrawn; never a name. When it exists, `from` must be listed
+and live on `on`. A record outside the register is `capture:<id>` (`external_record`), not resolved.
+Decision 0009. A handle is one person in one role; `person` is the holder's directory identifier,
+matching `[elicited]` `person`, never free text or a hand-typed address, and one `person` holds at
+most one live handle per unit and set of roles (live: from `issued` to the day before `withdrawn`).
+Where the holder is recorded instead (the private register or the directory) is the organisation's
+choice; never a public repository. Decision 0021.
 
 **The impact walk.** `tools/impact.py` follows approved links only, from the thing changed to
 what rests on it (decisions 0007 and 0010): one row of `FORWARD` per start taxonomy, `owns` and
