@@ -106,6 +106,51 @@ class RegisterChecks(unittest.TestCase):
         msgs = run('{ from = "employee-1", on = 2026-11-02, record = "capture:x" }')
         self.assertTrue(any("never a name" in m for m in msgs) and any("roles ['rules'] unknown" in m for m in msgs), msgs)
 
+    def test_a_handle_may_record_its_holder_as_a_directory_identifier(self):
+        """Decision 0021: person is optional; when present it is a directory identifier (a numeric
+        id, a GUID, a principal name), never free text or a name. Synthetic values only."""
+        d = copy_register()
+        h = d / "people" / "handles.toml"
+        text = h.read_text()
+        def run(person_line):
+            h.write_text(text + '\n[[handle]]\nhandle = "employee-9"\nunit = "ORG-0002"\nroles = ["gives"]\n'
+                         'issued = 2026-11-02\n' + person_line)
+            f, _ = check_register.run(d, today=TODAY)
+            return [i["message"] for i in f.items if i["check"] == "handles"]
+        self.assertEqual(run(""), [])   # absent: the holder is in the directory, or this is a synthetic role
+        for valid in ("100234", "3f2504e0-4f89-11d3-9a0c-0305e82c3301", "u0042@directory.example",
+                      "S-1-5-21-1004336348-1177238915-682003330-512"):
+            self.assertEqual(run(f'person = "{valid}"\n'), [], valid)
+        for invalid in ("Jane Doe", "jane.doe", "Doe", "jane doe@directory.example", ""):
+            msgs = run(f'person = "{invalid}"\n')
+            self.assertTrue(any("not a directory identifier" in m for m in msgs), (invalid, msgs))
+        self.assertTrue(any("not a directory identifier" in m for m in run("person = 100234\n")))
+
+    def test_one_person_holds_one_handle_per_unit_and_roles_at_a_time(self):
+        """Decision 0021: a handle is one person in one role. Two live handles of one person with the
+        same unit and roles are refused; a successor handle from the day of withdrawal, another
+        unit, or other roles are not."""
+        d = copy_register()
+        h = d / "people" / "handles.toml"
+        text = h.read_text()
+        def run(*handles):
+            extra = "".join(
+                f'\n[[handle]]\nhandle = "{n}"\nunit = "{u}"\nroles = {r}\nissued = {i}\nperson = "100234"\n'
+                + (f"withdrawn = {w}\n" if w else "") for n, u, r, i, w in handles)
+            h.write_text(text + extra)
+            f, _ = check_register.run(d, today=TODAY)
+            return [i["message"] for i in f.items if i["check"] == "handles"]
+        one = ("employee-8", "ORG-0002", '["gives"]', "2026-11-02", None)
+        msgs = run(one, ("employee-9", "ORG-0002", '["gives"]', "2026-11-05", None))
+        self.assertTrue(any("already holds employee-8" in m for m in msgs), msgs)
+        msgs = run(("employee-8", "ORG-0002", '["gives"]', "2026-11-02", "2026-11-05"),
+                   ("employee-9", "ORG-0002", '["gives"]', "2026-11-04", None))
+        self.assertTrue(any("already holds employee-8" in m for m in msgs), msgs)
+        self.assertEqual(run(("employee-8", "ORG-0002", '["gives"]', "2026-11-02", "2026-11-05"),
+                             ("employee-9", "ORG-0002", '["gives"]', "2026-11-05", None)), [])
+        self.assertEqual(run(one, ("employee-9", "ORG-0001", '["gives"]', "2026-11-02", None)), [])
+        self.assertEqual(run(one, ("employee-9", "ORG-0002", '["gives", "approves"]', "2026-11-02", None)), [])
+
     def test_the_walk_starts_from_every_kind_something_rests_on(self):
         """Decision 0010: from a capability, an information entity, a product or a journey step the
         walk reaches what rests on it; only nodes with no links of their own (domains, portfolios)

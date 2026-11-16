@@ -34,7 +34,7 @@ The opportunity canvas, SWOT and a drawing of this repository:
 | `capabilities/ products/ journeys/ processes/ applications/ information/ organisation/` | one TOML file per node: id, kind, name, parent, state, owner, a pointer to the source of record, an approval | **authoritative** |
 | `relationships/` | one file per relationship type: a type header (kinds, direction, inverse, cardinality per state, owner, evidence class, ARIS and Archi support status), then the links | **authoritative** |
 | `metamodel/` `glossary/` `mapping/` `decisions/` `exceptions/` | the design contract, the approved terms, the tested mapping matrix, decision records, expiring exceptions | **authoritative** |
-| `people/` | the handles issued to people who give knowledge: handle, unit, roles, dates; never a name (decision 0009) | **authoritative** |
+| `people/` | the handles issued to people who give knowledge: handle, unit, roles, dates and, in an organisation's private register, who holds each one; never a name (decisions 0009 and 0021) | **authoritative** |
 | `exports/<system>/<date>/` | a dated mirror of a source of record: a manifest of digests and ids, a reconciliation report | a mirror with provenance, never the record |
 | `reports/<date>/` | coverage, impact and reconciliation summaries, written at a tag | derived, never the record |
 | `tools/` | standard-library Python: the checker, reconcile, impact, inventory | |
@@ -59,6 +59,36 @@ Approval is not a git feature. A node or link is approved when its file says
 owners. The pull request's merge records who changed the file; the approval block records who
 approved the content. Deprecating a node fails the check on every approved link that still
 references it; nothing is fixed automatically.
+
+## Before you record knowledge people give
+
+A **handle** (in `people/handles.toml`) stands for one person in one role: one unit and a set of
+roles (`gives`, `approves`, `closes`). A person who answers for two units holds two handles; when
+the role passes to someone else, the old handle is withdrawn and the successor gets a new one. Who
+holds a handle is recorded and never anonymised (decision 0021): knowledge given in a role belongs
+to the organisation, and knowing who gave it is how people find the expert after a move or a
+departure.
+
+You record the holder in one of two places, and say which in your register: in your own private
+register, as the handle's optional `person` field, or in your directory, the register then holding
+the handle alone. Never in a public repository. `person` is your directory's identifier for the
+account (a numeric id, a GUID or a principal name), read from the directory, never a name typed in
+and never an e-mail address typed by hand. The checker refuses a `person` with a space or without a
+digit or `@`, and one person holding two live handles with the same unit and roles; if your
+directory issues identifiers of another form, adjust `person` in `metamodel/types.toml`.
+
+A holder's identity is personal data. Before the first capture, record in a decision of your own
+register:
+
+1. the purpose: knowledge transfer and the provenance of what the register holds;
+2. the lawful basis you rely on;
+3. the notice given to the people who answer;
+4. the retention period: the record of who held which handle is kept while any statement given
+   under it is in force, and then for your audit period;
+5. your data-protection officer's approval.
+
+The checker cannot verify any of these. They are conditions of going live, not checks. This
+repository's handles are synthetic roles and carry no `person`.
 
 ## The checks
 
