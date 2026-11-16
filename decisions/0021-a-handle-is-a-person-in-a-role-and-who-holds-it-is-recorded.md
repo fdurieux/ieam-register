@@ -1,6 +1,7 @@
 # 0021 — A handle is a person in a role, and who holds it is recorded
 
-Date: 2026-11-16. State: proposed (drafted by a session, which never approves, decision 0019; on the maintainer's
+Date: 2026-11-16. State: approved (fdurieux, in the maintainer's chat on 2026-11-16: "approve decision 0021"; recorded on
+the pull request before its merge; the line read proposed when drafted). Drafted by a session, which never approves, decision 0019; on the maintainer's
 words in their chat on 2026-11-16: knowledge "should never be anonymised: knowledge of an employee in an organisation
 belongs to the organisation and not to the person; knowing who possesses knowledge helps for collaboration & knowledge
 transfer", "The “contributor-001” links the role of that person for that specific question/knowledge", and "draft it with a new
