@@ -1,6 +1,6 @@
 # 0024 — A name that differs from the latest export is a warning, where the export names concepts
 
-Date: 2026-11-27. State: proposed. Drafted by session_01HTAA1VMpofzhnMmGA5dXyy, dispatched by
+Date: 2026-11-27. State: approved (fdurieux, in the maintainer's chat on 2026-11-27: "approve 0024"; recorded on the pull request before its merge; the line read proposed when drafted). Drafted by session_01HTAA1VMpofzhnMmGA5dXyy, dispatched by
 session_01HTAA1UV2N6XGtCwCvVnB5t on fdurieux/ieam-register#39; a session never approves (decision 0019).
 Supersedes: nothing. Sets the level and the scope of the name check that CLAUDE.md and METAMODEL.md have
 described since decision 0001 and no code ran; adds one field, `export_names`, to every `[system.<name>]` of
