@@ -36,8 +36,10 @@ record: does installing pumllint and aris2puml to check them add one, and what d
         or added;
       - (c) `aris/export_epc.js`, read as text, takes the process id and an interface's `ref` from the attribute
         `sources.toml` `[system.aris]` `register_id_attribute` names, on a function definition, with that
-        definition's GUID as the fallback, as decision 0022 §4 states the target. An expression the reader
-        cannot place is a failure that says "read it by hand", never a pass.
+        definition's GUID as the fallback, as decision 0022 §4 states the target. The reader follows a name bound
+        to `Constants.<attribute>` and one level of helper function; a last-resort GUID where no single
+        definition is reached is reported, not failed, since decision 0022 names no target there. An expression
+        the reader cannot place is a failure that says "read it by hand", never a pass.
    3. *The floor.* The pumllint release aris2puml's `check` extra pins (`pyproject.toml`, `pumllint>=X`) is
       installed as `pumllint==X`, and check 1 holds at it.
 3. **Not a dependency of the register's tools.** A dependency is what a register tool needs to run. pumllint and
@@ -61,7 +63,10 @@ record: does installing pumllint and aris2puml to check them add one, and what d
    - Check 1 red at pumllint's release or `main`: pumllint's inventory reader moved, and pumllint fixes it, unless
      the register's pull request that turned it red changed `inventory.py`. That pull request runs the seam before
      merge, and its author fixes it, or records the new format in a decision first.
-   - Check 2 red: aris2puml fixes its conventions, its footer or its report script.
+   - Check 2 red: aris2puml fixes its footer or its report script. The footer pattern (2a) originates in pumllint's
+     guide, `docs/business-processes.md` and `docs/process-demo/conventions.toml`, and aris2puml's
+     `tests/fixtures/conventions.toml` mirrors it ("that guide's configuration", aris2puml README): pumllint moves
+     first, aris2puml follows. The check reads aris2puml's copy, the one its adopters are handed.
    - Check 3 red: aris2puml raises its floor to a release check 1 holds at.
    - A contract the register means to change is changed by a decision record here, never by editing the check to
      pass.
@@ -72,8 +77,10 @@ record: does installing pumllint and aris2puml to check them add one, and what d
 
 ## Measured
 
-`tools/seam_check.py` on the register at `1b4974c`, against pumllint 0.35.0 from PyPI, pumllint `main` at
-`9205390` (it reports 0.35.0), pumllint 0.33.0 (the floor) and aris2puml `main` at `566cf6f`, on 2026-11-27:
+Two runs on 2026-11-27, against pumllint 0.35.0 from PyPI, pumllint `main` at `9205390` (it reports 0.35.0) and
+pumllint 0.33.0 (the floor).
+
+**The first run**, on the register at `1b4974c` and aris2puml `main` at `566cf6f`, before aris2puml#53:
 
 - **Check 1 holds** at all three: 6 of 6 ids read, 0 dropped, 0 added, no warning. CAP-0001 and CAP-0006
   (`capability_domain`) are outside the inventory by its design: 6 of 8 CAP nodes.
@@ -85,8 +92,26 @@ record: does installing pumllint and aris2puml to check them add one, and what d
   - (b) holds: 10 of 10 footers read back, interfaces included.
   - (c) fails, as decision 0022 recorded on approval: the process id is `attr(model, Constants.AT_ID) ||
     model.GUID()`, a model; the interface `ref` is `attr(linked[0], Constants.AT_ID) || linked[0].GUID()`, an
-    assigned model. `AT_ID` agrees with `register_id_attribute`. aris2puml#52 is open for the process id.
+    assigned model. `AT_ID` agrees with `register_id_attribute`. aris2puml#52 was open for the process id.
 - **Check 3 holds:** `pumllint>=0.33`, installed as 0.33.0; check 1 holds at it.
+
+**The second run**, on the register at `35c5940` (decision 0024 merged in) and aris2puml `main` at `3c475c4`,
+after aris2puml#53 (merged 19:06), which closes #52:
+
+- Checks 1 and 3 as before.
+- **Check 2 is red on (a) alone.** (a) and (b) as before.
+  - (c) holds. The process id is `processId(model)`. It reads `attr(defs[i], REGISTER_ID_ATTRIBUTE) ||
+    defs[i].GUID()` over `model.SuperiorObjDefs()`, a function definition. `REGISTER_ID_ATTRIBUTE = Constants.AT_ID`
+    agrees with `register_id_attribute`.
+  - The interface `ref` is `attr(def, REGISTER_ID_ATTRIBUTE) || def.GUID()`, on the occurrence's own definition.
+  - Reported, not failed: two last-resort `return model.GUID()` paths, each with a warning. They are taken where
+    `SuperiorObjDefs()` fails or no single function definition is reached.
+  - `SuperiorObjDefs()` is unconfirmed in the script's own header, as decision 0022 recorded the reach from a
+    model to its definition.
+- **The reader moved in this pull request.** The first reader read only `attr(<holder>, Constants.<name>)` inline,
+  and failed #53's shape for its own sake ("reads no attribute directly; read it by hand"). The weakness below was
+  realised once. The reader now follows the bound name and the helper. On the `566cf6f` script it still fails, as
+  in the first run.
 
 The register's checks are unchanged: 57 nodes, 65 links, 0 errors, 12 warnings.
 
@@ -114,8 +139,7 @@ The register's checks are unchanged: 57 nodes, 65 links, 0 errors, 12 warnings.
   changes `inventory.py` or `sources.toml`, which sees the effect on the consumers before it merges.
 - **Solution:** one standard-library script, three checks, one workflow on a schedule, red read and never gating.
 - **What it costs:** one script and five tests here; one workflow; a daily job of a few minutes on a hosted runner;
-  network reach to github.com and PyPI from that job; a red run to read while aris2puml#52 and the pattern stay
-  open.
+  network reach to github.com and PyPI from that job; a red run to read while the footer pattern stays open.
 - **How we know it worked:** a change on either side that drops or misreads a register id turns the next
   scheduled run red, naming the id; the side that moved fixes it, and the next run is green without a change
   here.
@@ -140,11 +164,11 @@ The register's checks are unchanged: 57 nodes, 65 links, 0 errors, 12 warnings.
 - **Strengths:** the register finds drift on the day it happens, at the id that moved; the gate stays the
   register's own, standard library only; the first run already found a latent misread (`PROC-10000`) no test
   here or there exercised.
-- **Weaknesses:** a check that is red on its first run (check 2, until aris2puml#52 and the pattern land) teaches
-  readers to ignore it; (c) reads JavaScript with patterns, and a rewrite of the script can make it fail for the
-  reader's sake, not the contract's; a red `main` on the other side reads the same as drift.
+- **Weaknesses:** a check that is red on its first run (check 2, until the pattern lands) teaches readers to
+  ignore it; (c) reads JavaScript with patterns, and a rewrite of the script can make it fail for the reader's
+  sake, not the contract's, as #53's did once (Measured); a red `main` on the other side reads the same as drift.
 - **Opportunities:** knowgov's connector and pumllint's `docs/process-demo` copy of the pattern can join as further
-  checks once a record says what they promise; a green check 2 after aris2puml#52 is the evidence the decision
+  checks once a record says what they promise; check 2 (c) green on aris2puml#53 is the evidence the decision
   0022 build on that side asks for, short of a run in ARIS.
 - **Threats:** pumllint or aris2puml changes shape faster than the reader follows, and the run is red for months;
   a session or adopter makes `seam` a required check, and the other repositories' `main` gates the register.
@@ -157,11 +181,13 @@ Approve (c). The reasons:
   result from the side that wrote the contract.
 - (b) makes pumllint and aris2puml part of the register's gate in all but name; (c) keeps the gate standard
   library only and still runs the real command lines, which (e) and the fixture do not.
-- The first run earns the workflow: check 2 (a) found that aris2puml's conventions would read a five-digit
-  register id as another process, and (c) states the decision 0022 build still owed, from the source, not from a
-  reading of it.
-- Red today is the accurate state, not noise: aris2puml#52 is open, and the pattern is one character from
-  agreeing (`PROC-\d{4,}`). Both are aris2puml's to move; the next green run shows they did.
+- The first runs earn the workflow:
+  - check 2 (a) found that the conventions aris2puml hands adopters would read a five-digit register id as another
+    process;
+  - (c) stated the decision 0022 build still owed, from the source, and turned green on the day aris2puml#53
+    landed it.
+- Red today is the accurate state, not noise: the pattern is one character from agreeing (`PROC-\d{4,}`). It is
+  pumllint's guide to move and aris2puml's mirror to follow; the next green run shows they did.
 
 Revisit when a fourth seam is added, or if check 2 (c) fails for the reader's sake more than once: then the
 report script should state its id expression in a form a reader can check, a request to aris2puml, not a change
@@ -174,7 +200,8 @@ here.
   `tools/inventory.py`, `metamodel/sources.toml` or the workflow; one virtual environment per command line.
 - `tests/test_register.py`: `SeamCheck`, five tests on synthetic inputs (no pumllint, no aris2puml): no import of
   either and the id contract's digits; trace output dropped, added and warned; the footer pattern held to four or
-  more digits; the report script read against decision 0022, today's shape and a definition-reading one; the
-  floor read from the `check` extra; 45 tests with decision 0024's.
+  more digits; the report script read against decision 0022 (the `566cf6f` shape, a definition-reading one, and
+  #53's shape with a bound attribute name and a helper); the floor read from the `check` extra; 45 tests with
+  decision 0024's.
 - README "The seam check"; CLAUDE.md's checks section and test count.
 - No node, link, export, exception, matrix row, relationship type or glossary term changes.

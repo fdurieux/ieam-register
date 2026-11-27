@@ -172,7 +172,8 @@ with the version or commit it read:
 **When it is red.** It blocks nothing: it is not a required check, and your pull requests merge
 on the `register` workflow as before. Read the failing line: it names the id dropped or misread
 and the file it came from. The side that differs from the register's recorded contract fixes
-it: pumllint for check 1, aris2puml for checks 2 and 3. The exception is a pull request here
+it: pumllint for check 1 and for the footer pattern its guide defines, aris2puml for the rest of
+check 2 and for check 3. The exception is a pull request here
 that changed `tools/inventory.py` or `sources.toml` and turned it red: fix that pull request, or
 record the new contract in a decision before merging. Never edit the check to make it pass.
 

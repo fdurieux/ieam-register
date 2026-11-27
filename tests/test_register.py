@@ -769,6 +769,21 @@ class SeamCheck(unittest.TestCase):
         ok, lines = seam_check.check_report_script(fixed, "AT_ID")
         self.assertTrue(ok, lines)
         self.assertFalse(seam_check.check_report_script(fixed, "AT_REGISTER_ID")[0])
+        helper = (self.TODAY_JS.replace("attr(linked[0], Constants.AT_ID) || linked[0].GUID()",
+                                        "attr(def, REGISTER_ID_ATTRIBUTE) || def.GUID()")
+                  .replace("attr(model, Constants.AT_ID) || model.GUID()", "processId(model)")
+                  + "var REGISTER_ID_ATTRIBUTE = Constants.AT_ID;\n"
+                  "function processId(model) {\n  var defs;\n  try { defs = model.SuperiorObjDefs(); }\n"
+                  "  catch (e) { warnings.push(e); return model.GUID(); }\n"
+                  "  for (var i = 0; i < defs.length; i++) {\n"
+                  "    var id = attr(defs[i], REGISTER_ID_ATTRIBUTE) || defs[i].GUID();\n  }\n"
+                  "  return model.GUID();\n}\n")
+        ok, lines = seam_check.check_report_script(helper, "AT_ID")
+        self.assertTrue(ok, lines)
+        self.assertIn("in processId()", lines[0])
+        self.assertIn("last resort `return model.GUID()` (2x), a model, with a warning", lines[0])
+        self.assertFalse(seam_check.check_report_script(
+            helper.replace("REGISTER_ID_ATTRIBUTE = Constants.AT_ID", "REGISTER_ID_ATTRIBUTE = Constants.AT_NAME"), "AT_ID")[0])
         ok, lines = seam_check.check_report_script("var doc = {};", "AT_ID")
         self.assertFalse(ok)
         self.assertIn("not found", lines[0])

@@ -205,7 +205,7 @@ def classify(expr: str, src: str, depth: int = 0) -> str:
     if not m or depth > 4 or last is not None:
         return "unclassified"
     base = m.group(0)
-    for b in re.finditer(rf"(?:\bvar\s+|,\s*){re.escape(base)}\s*=\s*([^,;\n]+)", src):
+    for b in re.finditer(rf"(?<![\w$.]){re.escape(base)}\s*=(?!=)\s*([^,;\n]+)", src):
         kind = classify(b.group(1), src, depth + 1)
         if kind != "unclassified":
             return kind
@@ -216,20 +216,64 @@ def classify(expr: str, src: str, depth: int = 0) -> str:
     return "unclassified"
 
 
+ATTR_RE = re.compile(r"attr\(\s*([^,]+?)\s*,\s*((?:Constants\.)?[A-Za-z_$][\w$]*)\s*\)")
+GUID_RE = re.compile(r"\|\|\s*([^|;\n]+?)\.GUID\(\s*\)")
+
+
+def function_body(name: str, src: str) -> str | None:
+    """The body of `function name(...) { ... }` in the script, braces matched."""
+    m = re.search(rf"\bfunction\s+{re.escape(name)}\s*\([^)]*\)\s*\{{", src)
+    if not m:
+        return None
+    depth, i = 1, m.end()
+    while i < len(src) and depth:
+        depth += {"{": 1, "}": -1}.get(src[i], 0)
+        i += 1
+    return src[m.end():i - 1]
+
+
+def resolve_attribute(token: str, src: str) -> str | None:
+    """`Constants.AT_ID`, or a name the script binds to one (`var REGISTER_ID_ATTRIBUTE = Constants.AT_ID`)."""
+    if token.startswith("Constants."):
+        return token[len("Constants."):]
+    m = re.search(rf"(?<![\w$.]){re.escape(token)}\s*=(?!=)\s*Constants\.(\w+)", src)
+    return m.group(1) if m else None
+
+
 def read_id_expression(label: str, expr: str | None, src: str, attribute: str, expected_holder: str) -> tuple[bool, str]:
     if expr is None:
         return False, f"{label}: not found in {REPORT_SCRIPT}; read it by hand"
-    a = re.search(r"attr\(\s*([^,]+?)\s*,\s*Constants\.(\w+)\s*\)", expr)
-    g = re.search(r"\|\|\s*(.+?)\.GUID\(\s*\)", expr)
-    if not a:
-        return False, f"{label}: `{expr}` reads no attribute directly; read it by hand"
-    holder, attr_name = a.group(1), a.group(2)
+    shown, notes = f"`{expr}`", []
+    if not ATTR_RE.search(expr):
+        # One level of helper: `id: processId(model)` read through the function's body.
+        call = re.fullmatch(r"\s*([A-Za-z_$][\w$]*)\s*\(.*\)\s*", expr)
+        body = function_body(call.group(1), src) if call else None
+        inner = re.search(r"attr\(.*?\.GUID\(\s*\)", body) if body else None
+        if not inner:
+            return False, f"{label}: `{expr}` reads no attribute directly; read it by hand"
+        shown = f"`{expr}`, through `{inner.group(0)}` in {call.group(1)}()"
+        last = [r.group(1) for r in re.finditer(r"\breturn\s+([^;\n]+?)\.GUID\(\s*\)\s*;", body)]
+        for receiver in dict.fromkeys(last):
+            kind = classify(receiver, src)
+            if kind != "definition":
+                notes.append(f"last resort `return {receiver}.GUID()` ({last.count(receiver)}x), {kind_phrase(kind)}"
+                             + (", with a warning" if "warnings.push" in body else "")
+                             + ", where no single function definition is reached; decision 0022 §4 names no target there")
+        expr = inner.group(0)
+    a = ATTR_RE.search(expr)
+    g = GUID_RE.search(expr)
+    holder, token = a.group(1), a.group(2)
+    attr_name = resolve_attribute(token, src)
     kind = classify(holder, src)
     fallback = classify(g.group(1), src) if g else None
     ok = attr_name == attribute and kind == "definition" and fallback == "definition"
-    said = (f"{label}: `{expr}` reads {attr_name} ({'agrees with' if attr_name == attribute else 'differs from'} "
-            f"register_id_attribute {attribute}) on `{holder}`, {kind_phrase(kind)}; GUID fallback "
+    named = attr_name if token.startswith("Constants.") else f"{token} = {attr_name or 'unresolved'}"
+    agree = "agrees with" if attr_name == attribute else "differs from"
+    said = (f"{label}: {shown} reads {named} ({agree} register_id_attribute {attribute}) on `{holder}`, "
+            f"{kind_phrase(kind)}; GUID fallback "
             + (f"on `{g.group(1)}`, {kind_phrase(fallback)}" if g else "absent"))
+    if notes:
+        said += "; " + "; ".join(notes)
     if not ok:
         said += f". Decision 0022 §4: {expected_holder}, else that definition's GUID"
     return ok, said
