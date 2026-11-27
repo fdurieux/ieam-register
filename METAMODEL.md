@@ -22,7 +22,7 @@ has an export, an id the latest export (by folder date) no longer carries is a `
 deletion, and no name finding. On a `"concept"` system, `name` is compared with the name `[ids]` gives
 the id; a difference is a `name` warning; no exception excuses either. A node of a `"document"` system,
 one whose system has no export, and one whose `<path>#<part>` id names a part the export carries whole
-are unchecked, counted by reason over every node with a `[source]` (decision 0024, proposed).
+are unchecked, counted by reason over every node with a `[source]` (decision 0024).
 
 **Relationship types.** Ten files under `relationships/`: `requires`, `concerns`,
 `is_supported_by`, `realizes`, `delivers`, `supports`, `crud` (with `mode`), `manages`, `owns`,

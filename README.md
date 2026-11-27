@@ -122,7 +122,7 @@ many of your approved capabilities any usage cites. Deprecating a capability the
 the same pull request, the usages to tell; the usage itself is corrected in its own registry.
 The export in this repository is synthetic.
 
-**Names against the latest export** (decision 0024, proposed). A node's `name` is the one thing it
+**Names against the latest export** (decision 0024). A node's `name` is the one thing it
 repeats from its source of record. Each system in `metamodel/sources.toml` declares what its
 export's ids name, in `export_names`: `"concept"` when each id is the thing a node names (an ARIS
 function definition, an Archi element), `"document"` when it is a file that nodes point into. For a
