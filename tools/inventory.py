@@ -1,4 +1,5 @@
-"""Write the capability inventory pumllint's trace reads (one id per line, name after a tab),
+"""Write the capability inventory pumllint's trace reads (one id per line, the name after
+a ` # ` inline comment, which pumllint 0.35.0 drops and a human reader keeps),
 so `pumllint trace --pattern 'CAP-\\d+' --requirements caps.txt --fail-on-uncovered` over the
 converted diagram corpus reports which capabilities have no process diagram. Approved
 capabilities only, unless --all.
@@ -27,7 +28,7 @@ def main(argv=None) -> int:
     ap.add_argument("--root", type=Path, default=ROOT)
     a = ap.parse_args(argv)
     for nid, name in inventory(load_register(a.root), a.all):
-        print(f"{nid}\t{name}")
+        print(f"{nid}  # {name}")
     return 0
 
 

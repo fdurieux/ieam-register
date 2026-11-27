@@ -117,7 +117,7 @@ python tools/impact.py --from CAP-0002 --walk realisers   # which processes and 
 python tools/impact.py --from CAP-0001 --children         # which products and journeys rest on anything under freight quoting (decision 0014)
 python tools/impact.py --from JRN-0002 --walk thread      # which process, capability, application and data a journey step uses (decision 0018)
 python tools/check_register.py             # C1: journey steps without a process; C2: capabilities without a realising process; C4: realising processes without an application
-python tools/inventory.py > caps.txt       # the capability inventory for pumllint trace --fail-on-uncovered
+python tools/inventory.py > caps.txt       # the capability inventory for pumllint trace --fail-on-uncovered: `CAP-0001  # name`, the name an inline comment trace ignores
 ```
 
 `--walk realisers` answers "what implements this capability?": you get back the processes that

@@ -439,6 +439,21 @@ class RegisterChecks(unittest.TestCase):
         self.assertEqual(ids, ["CAP-0002", "CAP-0003", "CAP-0004", "CAP-0007", "CAP-0008"])
         self.assertIn("CAP-0005", [i for i, _ in inventory.inventory(reg, include_all=True)])
 
+    def test_inventory_output_is_a_plain_text_trace_inventory(self):
+        # fixture of pumllint 0.35.0 trace's plain-text rule: strip; skip blank and `#` lines;
+        # drop an inline `<whitespace>#` comment; an id left holding whitespace never matches.
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            inventory.main(["--all"])
+        lines = buf.getvalue().splitlines()
+        self.assertTrue(lines)
+        for line in lines:
+            s = line.strip()
+            s = re.split(r"\s#", s, maxsplit=1)[0].strip()
+            self.assertRegex(s, r"^CAP-\d{4,}$", line)
+
     def test_reconcile_against_no_previous(self):
         d = copy_register()
         r = reconcile.reconcile(d / "exports" / "kit" / "2026-10-30", d)
