@@ -1,6 +1,6 @@
 # 0022 — A process node points at its function's definition, and the register id rides on it
 
-Date: 2026-11-27. State: proposed (drafted by a session, which never approves, decision 0019; raised by #38).
+Date: 2026-11-27. State: approved (fdurieux, in the maintainer's chat on 2026-11-27: "approve 0022 and 0023"; recorded on the pull request before its merge; the line read proposed when drafted). Drafted by a session, which never approves, decision 0019; raised by #38.
 Supersedes: nothing. Settles what `metamodel/sources.toml` `[system.aris]` `id_field = "aris_guid"` names for a
 `process` node, which the file has left open since decision 0001. The name check (#39) waits for it.
 
