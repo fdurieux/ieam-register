@@ -16,6 +16,13 @@ process (coverage rule C3). For ARIS, a process node's `aris_guid` is the GUID o
 definition, never an occurrence or a model; `diagram` is the GUID of the EPC model of record; the
 register id rides on that definition in `sources.toml` `register_id_attribute` (`AT_ID` here), a
 copy of the register's id that must agree with it (decision 0022).
+Every system declares `export_names`: `"concept"` (its export's `[ids]` name what a node names) or
+`"document"` (a file nodes point into); missing or another value is an error. For a node whose system
+has an export, an id the latest export (by folder date) no longer carries is a `stale` warning, never a
+deletion, and no name finding. On a `"concept"` system, `name` is compared with the name `[ids]` gives
+the id; a difference is a `name` warning; no exception excuses either. A node of a `"document"` system,
+one whose system has no export, and one whose `<path>#<part>` id names a part the export carries whole
+are unchecked, counted by reason over every node with a `[source]` (decision 0024).
 
 **Relationship types.** Ten files under `relationships/`: `requires`, `concerns`,
 `is_supported_by`, `realizes`, `delivers`, `supports`, `crud` (with `mode`), `manages`, `owns`,

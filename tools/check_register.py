@@ -1,8 +1,9 @@
 """The register's checks: types, directions, required metadata, hierarchy cycles, duplicate
 identities, cardinalities, dangling links, lifecycle consistency, approvals, knowledge a person
 gave and the handles it is given under (decisions 0008, 0009), glossary, the coverage rules C1 to C4 with expiring exceptions (C4, decision 0020), and the product–journey alignment
-rule A1 at warning level (decision 0018), and the inbound references another system's export cites
-(decision 0023), at warning level. Exit 1 on any error; warnings exit 0.
+rule A1 at warning level (decision 0018), the inbound references another system's export cites
+(decision 0023), at warning level, and each node's name against the latest export of its system, where
+that system's export names concepts (decision 0024), at warning level. Exit 1 on any error; warnings exit 0.
 
     python tools/check_register.py                 # check the working tree
     python tools/check_register.py --previous HEAD # also diff lifecycle states against a commit
@@ -566,6 +567,63 @@ def check_inbound(reg: dict, f: Findings) -> dict:
     return out
 
 
+# decision 0024: the level of a name finding; a warning, never excused by an exception
+NAME_LEVEL = "warning"
+# decision 0024: what a system's export [ids] name; only "concept" is compared with a node's name
+EXPORT_NAMES = ("concept", "document")
+
+
+def check_names(reg: dict, f: Findings) -> dict:
+    """Decision 0024 (issue #39): each node with a [source] whose system has an export is looked up in
+    the latest export's [ids]. An id the export no longer carries is a `stale` warning, never a
+    deletion, and no name finding. Where the system's `export_names` (metamodel/sources.toml) is
+    "concept", the node's `name` is compared with the name the export gives its id; a difference is a
+    `name` finding with the node, both names and the folder. Where it is "document", the export names
+    the documents nodes point into, never what a node names, so the node is unchecked. An id with a
+    part (`#`) the export carries only whole is unchecked: the document's name is not the part's. For
+    `aris` the id is the function definition's GUID, so the name read is the definition's (decision
+    0022). Reported with its denominator."""
+    out = {"denominator": 0, "matched": 0, "differing": [], "stale": [], "unchecked_no_export": 0,
+           "unchecked_document": 0, "unchecked_part": 0}
+    for sysname, spec in sorted(reg["sources"]["system"].items()):
+        if spec.get("export_names") not in EXPORT_NAMES:
+            f.error("sources", f"metamodel/sources.toml [system.{sysname}]",
+                    f"export_names must be one of {list(EXPORT_NAMES)}, got {spec.get('export_names')!r} (decision 0024)")
+    manifests: dict[str, tuple[str, dict] | None] = {}
+    for nid in sorted(reg["nodes"]):
+        n = reg["nodes"][nid]
+        src = n.get("source") or {}
+        sysname = src.get("system")
+        spec = reg["sources"]["system"].get(sysname or "")
+        if spec is None or not src.get(spec["id_field"]):
+            continue   # no [source], or one check_nodes already refuses
+        out["denominator"] += 1
+        if sysname not in manifests:
+            folder = _latest_export(reg, sysname)
+            manifests[sysname] = (folder.relative_to(reg["root"]).as_posix(), load_toml(folder / "MANIFEST.toml")) if folder else None
+        if manifests[sysname] is None:
+            out["unchecked_no_export"] += 1
+            continue
+        folder, man = manifests[sysname]
+        ids, ext = man.get("ids", {}), src[spec["id_field"]]
+        where = f"{n['_taxonomy']}/{nid}.toml"
+        if ext not in ids and ext.split("#")[0] not in ids:
+            out["stale"].append({"id": nid, spec["id_field"]: ext, "export": folder})
+            f.warn("stale", where, f"{ext} is not among the ids of {folder}, the latest {sysname} export; a stale finding, never a deletion")
+        elif spec.get("export_names") != "concept":
+            out["unchecked_document"] += 1
+        elif ext in ids:
+            if ids[ext] == n.get("name"):
+                out["matched"] += 1
+            else:
+                out["differing"].append({"id": nid, "name": n.get("name"), "export_name": ids[ext], "export": folder})
+                getattr(f, "error" if NAME_LEVEL == "error" else "warn")(
+                    "name", where, f"name {n.get('name')!r} differs from {ids[ext]!r}, the name {folder} gives {ext}")
+        else:
+            out["unchecked_part"] += 1
+    return out
+
+
 def check_transitions(reg: dict, f: Findings, previous: str):
     """Diff every node's and link's state against a git ref; a transition the lifecycle table does not allow is an error."""
     allowed = reg["lifecycle"]["transitions"]
@@ -620,6 +678,7 @@ def run(root: Path = ROOT, previous: str | None = None, today: dt.date | None = 
         check_transitions(reg, f, previous)
     summary["exports"] = export_counts(reg)
     summary["inbound"] = check_inbound(reg, f)
+    summary["names"] = check_names(reg, f)
     summary["nodes"] = len(reg["nodes"])
     summary["links"] = sum(len(r["links"]) for r in reg["relationships"].values())
     return f, summary
@@ -649,6 +708,13 @@ def main(argv=None) -> int:
               f"{s['not_yet_approved']} not yet approved, {s['withdrawn']} withdrawn, {s['no_node']} no node"
               + (f", {s['outside']} outside {', '.join(s['cites'])}" if s["outside"] else "")
               + f"; {s['approved_cited']}/{s['approved_total']} approved {', '.join(s['cites'])} cited ({s['export']})")
+    nm = summary["names"]
+    unchecked = nm["unchecked_no_export"] + nm["unchecked_document"] + nm["unchecked_part"]
+    checked = nm["denominator"] - unchecked - len(nm["stale"])
+    print(f"names: {nm['matched']}/{checked} checked against the latest export match, {len(nm['differing'])} differ, "
+          f"{len(nm['stale'])} stale; {unchecked}/{nm['denominator']} unchecked ({nm['unchecked_no_export']} with no export "
+          f"of their system, {nm['unchecked_document']} of a system whose export names documents, "
+          f"{nm['unchecked_part']} a part of a document the export names whole)")
     print(f"{summary['nodes']} nodes, {summary['links']} links, {len(f.errors)} error(s), {len(f.items) - len(f.errors)} warning(s)")
     if a.report:
         a.report.parent.mkdir(parents=True, exist_ok=True)

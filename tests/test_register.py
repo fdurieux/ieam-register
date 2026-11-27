@@ -622,6 +622,95 @@ class SecondSubject(unittest.TestCase):
             self.assertTrue(by_id[lid]["approval"]["record"].endswith("0007-three-citations-re-read-and-the-walk-follows-approved-links.md"), lid)
 
 
+def later_export(d: Path, system: str, date: str, ids: dict[str, str], previous: str = "") -> Path:
+    """A synthetic export folder: a MANIFEST with the given [ids] and no files."""
+    folder = d / "exports" / system / date
+    folder.mkdir(parents=True)
+    lines = [f"exported_on = {date}T00:00:00Z", f'source = "{system}"', 'source_version = "synthetic"',
+             'tool = "tests"', 'tool_version = "0"', f'previous = "{previous}"', "", "[files]", "", "[ids]"]
+    lines += [f'"{k}" = "{v}"' for k, v in ids.items()]
+    (folder / "MANIFEST.toml").write_text("\n".join(lines) + "\n")
+    return folder
+
+
+def point(d: Path, path: str, old: str, new: str):
+    p = d / path
+    p.write_text(p.read_text().replace(old, new))
+
+
+class NameCheck(unittest.TestCase):
+    """Decision 0024 (issue #39): a node's name against the name the latest export of its system gives its id,
+    where that system's export names concepts. GUIDs and names below are synthetic."""
+    GUIDS = {"PROC-0002": "00000000-0000-4000-8000-000000000002", "PROC-0003": "00000000-0000-4000-8000-000000000003",
+             "PROC-0004": "00000000-0000-4000-8000-000000000004", "PROC-0005": "00000000-0000-4000-8000-000000000005"}
+
+    def _to_aris(self, d: Path, nid: str):
+        p = d / "processes" / f"{nid}.toml"
+        p.write_text(re.sub(r'system = "kit"\nkit_path = "[^"]*"', f'system = "aris"\naris_guid = "{self.GUIDS[nid]}"', p.read_text()))
+
+    def _aris_copy(self) -> Path:
+        """PROC-0002, 0004 and 0005 on aris; its export renames 0002's definition and no longer carries 0005's."""
+        d = copy_register()
+        for nid in ("PROC-0002", "PROC-0004", "PROC-0005"):
+            self._to_aris(d, nid)
+        later_export(d, "aris", "2026-11-20", {self.GUIDS["PROC-0004"]: "Price the quote",
+                                               self.GUIDS["PROC-0002"]: "Validate the request",
+                                               self.GUIDS["PROC-0005"]: "Notify the shipper"})
+        later_export(d, "aris", "2026-12-01", {self.GUIDS["PROC-0004"]: "Price the quote",
+                                               self.GUIDS["PROC-0002"]: "Check the request"},
+                     previous="exports/aris/2026-11-20")
+        return d
+
+    def _for(self, f, nid):
+        return [i for i in f.items if f"/{nid}.toml" in i["where"] and i["check"] in ("name", "stale")]
+
+    def test_a_matching_name_gives_no_finding(self):
+        f, summary = check_register.run(self._aris_copy(), today=TODAY)
+        self.assertEqual(self._for(f, "PROC-0004"), [])
+        self.assertEqual(summary["names"]["matched"], 1)
+
+    def test_a_differing_name_names_the_node_both_names_and_the_folder(self):
+        f, summary = check_register.run(self._aris_copy(), today=TODAY)
+        hits = self._for(f, "PROC-0002")
+        self.assertEqual([(i["level"], i["check"]) for i in hits], [(check_register.NAME_LEVEL, "name")])
+        for part in ("Validate the request", "Check the request", self.GUIDS["PROC-0002"], "exports/aris/2026-12-01"):
+            self.assertIn(part, hits[0]["message"])   # the latest folder by date, not the earlier one
+        self.assertEqual(summary["names"]["differing"], [{"id": "PROC-0002", "name": "Validate the request",
+                                                          "export_name": "Check the request", "export": "exports/aris/2026-12-01"}])
+
+    def test_a_system_with_no_export_is_unchecked_and_counted(self):
+        d = copy_register()
+        self._to_aris(d, "PROC-0003")
+        f, summary = check_register.run(d, today=TODAY)
+        self.assertEqual(self._for(f, "PROC-0003"), [])
+        self.assertEqual((summary["names"]["unchecked_no_export"], summary["names"]["denominator"]), (1, 57))
+        later_export(d, "aris", "2026-12-01", {self.GUIDS["PROC-0003"]: "Screen the shipper"})
+        _, summary = check_register.run(d, today=TODAY)
+        self.assertEqual((summary["names"]["unchecked_no_export"], summary["names"]["matched"]), (0, 1))
+
+    def test_a_vanished_id_is_stale_never_deleted_and_has_no_name_finding(self):
+        d = self._aris_copy()
+        f, summary = check_register.run(d, today=TODAY)
+        hits = self._for(f, "PROC-0005")
+        self.assertEqual([(i["level"], i["check"]) for i in hits], [("warning", "stale")])
+        self.assertEqual(summary["names"]["stale"], [{"id": "PROC-0005", "aris_guid": self.GUIDS["PROC-0005"],
+                                                      "export": "exports/aris/2026-12-01"}])
+        self.assertIn('name = "Notify the shipper"', (d / "processes" / "PROC-0005.toml").read_text())
+
+    def test_a_system_whose_export_names_documents_is_unchecked(self):
+        """The kit systems' [ids] give each document its file name: counted unchecked, never a name finding."""
+        f, summary = check_register.run(ROOT, today=TODAY)
+        nm = summary["names"]
+        self.assertEqual((nm["denominator"], nm["matched"], len(nm["differing"]), len(nm["stale"]),
+                          nm["unchecked_no_export"], nm["unchecked_document"], nm["unchecked_part"]), (57, 0, 0, 0, 0, 57, 0))
+        self.assertEqual([i for i in f.items if i["check"] in ("name", "stale")], [])
+        # a system that declares no export_names is refused
+        d = copy_register()
+        point(d, "metamodel/sources.toml", 'export_names = "document"\n', "", )
+        f, _ = check_register.run(d, today=TODAY)
+        self.assertTrue(any(i["check"] == "sources" and "export_names" in i["message"] and i["level"] == "error" for i in f.items))
+
+
 class SeamCheck(unittest.TestCase):
     """The seam check's readings (decision 0025), on synthetic inputs: no pumllint, no aris2puml."""
 

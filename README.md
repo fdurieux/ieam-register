@@ -122,6 +122,28 @@ many of your approved capabilities any usage cites. Deprecating a capability the
 the same pull request, the usages to tell; the usage itself is corrected in its own registry.
 The export in this repository is synthetic.
 
+**Names against the latest export** (decision 0024). A node's `name` is the one thing it
+repeats from its source of record. Each system in `metamodel/sources.toml` declares what its
+export's ids name, in `export_names`: `"concept"` when each id is the thing a node names (an ARIS
+function definition, an Archi element), `"document"` when it is a file that nodes point into. For a
+node whose system has an export, the checker reads the latest one and you get back:
+
+- `WARNING name`, on a `"concept"` system only: the node's name differs from the export's. The line
+  gives the node, both names, the id and the export folder. If the source of record renamed it, set
+  `name` to the export's in the pull request that lands the export; if the source of record is
+  wrong, fix it there and the next export closes the warning. Never edit an export folder.
+- `WARNING stale`, on any system: the latest export no longer carries the node's id. Find out
+  whether it was deleted, moved or re-keyed in the source of record; the checker never deletes the
+  node, and gives it no name warning as well.
+- nothing, when the names match.
+
+A summary line, `names: …`, counts the matches over the nodes checked, and the nodes left
+unchecked over every node with a `[source]`, by reason: their system has no export yet (ARIS,
+Archi and the EDM here), their system's export names documents (the two kits here, whose ids give
+each file its file name), or their id names a part of a document (`<path>#<part>`) that the export
+carries only whole. Neither warning fails the merge, and no exception is needed for one. A system
+added to `sources.toml` without `export_names` is an error.
+
 ## The seam check
 
 Two tools outside this repository read what the register writes. pumllint's `trace` reads the

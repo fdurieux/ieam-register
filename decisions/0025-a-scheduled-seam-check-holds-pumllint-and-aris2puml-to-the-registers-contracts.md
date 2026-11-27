@@ -175,6 +175,6 @@ here.
 - `tests/test_register.py`: `SeamCheck`, five tests on synthetic inputs (no pumllint, no aris2puml): no import of
   either and the id contract's digits; trace output dropped, added and warned; the footer pattern held to four or
   more digits; the report script read against decision 0022, today's shape and a definition-reading one; the
-  floor read from the `check` extra.
+  floor read from the `check` extra; 45 tests with decision 0024's.
 - README "The seam check"; CLAUDE.md's checks section and test count.
 - No node, link, export, exception, matrix row, relationship type or glossary term changes.
