@@ -1,6 +1,6 @@
 # 0025 — A scheduled seam check holds pumllint and aris2puml to the register's contracts, and blocks nothing
 
-Date: 2026-11-27. State: proposed. Drafted by session_01HTAA1RBiiVNM48BPZ17B2e, dispatched by
+Date: 2026-11-27. State: approved (fdurieux, in the maintainer's chat on 2026-11-27: "0025 + any knowgov task decision", a pre-approval of 0025 as advised if its advice was unchanged after the re-run; applied by the coordinating session at 23ba992, the advice unchanged; recorded on the pull request before its merge; the line read proposed when drafted). Drafted by session_01HTAA1RBiiVNM48BPZ17B2e, dispatched by
 session_01HTAA1UV2N6XGtCwCvVnB5t on fdurieux/ieam-register#46; a session never approves (decision 0019).
 Supersedes: nothing. Adds a workflow and a tool; changes no node, link, export, metamodel field, relationship
 type or glossary term. Decisions 0001 (ids, standard library only), 0019, 0022 (the definition carries the
