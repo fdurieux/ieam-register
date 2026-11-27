@@ -8,6 +8,11 @@ description = "ARIS, the governed authoring repository for processes, journeys, 
 id_field = "aris_guid"
 authoritative_for = ["processes", "journeys", "products"]
 export_route = "report script to JSON (aris2puml's contract); unverified in the target installation"
+# Decision 0022: what aris_guid names for a process node, and where ARIS carries the register id.
+# The attribute is a copy of the register's id, never minted in ARIS; an organisation's instance
+# may name another (knowgov connectors.toml id_attribute). Both unverified in the target installation.
+process_definition = "a process node's aris_guid is the GUID of one function definition (AML ObjDef, OT_FUNC), never an occurrence or a model; [source] diagram is the GUID of the EPC model of record"
+register_id_attribute = "AT_ID"
 
 [system.archi]
 description = "Archi, ArchiMate 3.2; authors capability and application views"

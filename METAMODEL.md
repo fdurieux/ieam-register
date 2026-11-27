@@ -12,7 +12,10 @@ empty `parent_of` list is a root. The organisation taxonomy exists so that owner
 `review_due` and `approval = { by, on, record }`. A `[source]` block names the system of record
 and its id field (`aris_guid`, `archi_id`, `edm_id`, or `kit_path` in this test case) and the
 export folder the name was checked against; a `diagram` field names the diagram of record for a
-process (coverage rule C3).
+process (coverage rule C3). For ARIS, a process node's `aris_guid` is the GUID of its function's
+definition, never an occurrence or a model; `diagram` is the GUID of the EPC model of record; the
+register id rides on that definition in `sources.toml` `register_id_attribute` (`AT_ID` here), a
+copy of the register's id that must agree with it (decision 0022).
 
 **Relationship types.** Ten files under `relationships/`: `requires`, `concerns`,
 `is_supported_by`, `realizes`, `delivers`, `supports`, `crud` (with `mode`), `manages`, `owns`,
