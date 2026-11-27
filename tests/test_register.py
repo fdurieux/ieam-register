@@ -487,6 +487,87 @@ class RegisterChecks(unittest.TestCase):
         self.assertEqual(summary["exports"]["jef_kit"]["denominator"], 50)
 
 
+class InboundReferences(unittest.TestCase):
+    """Decision 0023: an agent registry's usages cite a capability by id; the register reads them
+    from the registry's export, warns per citation that does not rest on an approved capability,
+    and reports the counts with their denominator. No node, no link."""
+    AR = "exports/agent_registry/2026-11-27/MANIFEST.toml"
+
+    def inbound(self, f):
+        return [i for i in f.items if i["check"] == "inbound"]
+
+    def test_the_synthetic_export_is_reported_with_its_denominator(self):
+        f, summary = check_register.run(ROOT, today=TODAY)
+        s = summary["inbound"]["agent_registry"]
+        self.assertEqual({k: s[k] for k in ("export", "denominator", "citing", "approved", "not_yet_approved", "withdrawn", "no_node", "outside", "approved_cited", "approved_total")},
+                         {"export": "exports/agent_registry/2026-11-27", "denominator": 4, "citing": 3, "approved": 1, "not_yet_approved": 1,
+                          "withdrawn": 0, "no_node": 1, "outside": 0, "approved_cited": 1, "approved_total": 7})
+        hits = self.inbound(f)
+        self.assertEqual([i["level"] for i in hits], ["warning", "warning"], hits)
+        self.assertEqual({i["where"] for i in hits}, {"capabilities/CAP-0005.toml", self.AR})
+        self.assertTrue(any("prov-17" in i["message"] and "no node" in i["message"] for i in hits))
+        self.assertTrue(any("CAP-0005" in i["message"] and "not yet approved" in i["message"] for i in hits))
+        self.assertNotIn("agent_registry", summary["exports"], "a system that authors no node has no unregistered count")
+
+    def test_a_deprecated_capability_moves_its_usage_to_withdrawn(self):
+        d = copy_register()
+        p = d / "capabilities" / "CAP-0003.toml"
+        p.write_text(p.read_text().replace('state = "approved"', 'state = "deprecated"'))
+        f, summary = check_register.run(d, today=TODAY)
+        s = summary["inbound"]["agent_registry"]
+        self.assertEqual((s["approved"], s["withdrawn"], s["approved_cited"], s["approved_total"]), (0, 1, 0, 6))
+        at = [i for i in f.items if i["where"] == "capabilities/CAP-0003.toml" or "CAP-0003" in i["message"]]
+        self.assertTrue(any(i["check"] == "inbound" and i["level"] == "warning" and "withdrawn" in i["message"]
+                            and i["where"] == "capabilities/CAP-0003.toml" for i in at), at)
+        self.assertTrue(any(i["check"] == "lifecycle" and i["level"] == "error" for i in at), "the approved links fail beside it")
+        self.assertEqual([i for i in self.inbound(f) if i["level"] == "error"], [])
+
+    def test_a_node_outside_the_cited_taxonomies_is_a_warning(self):
+        d = copy_register()
+        p = d / self.AR
+        p.write_text(p.read_text().replace('"u-c51e90" = "prov-17"', '"u-c51e90" = "PRD-0002"'))
+        f, summary = check_register.run(d, today=TODAY)
+        self.assertTrue(any(i["where"] == "products/PRD-0002.toml" and i["level"] == "warning" for i in self.inbound(f)))
+        self.assertEqual((summary["inbound"]["agent_registry"]["outside"], summary["inbound"]["agent_registry"]["no_node"]), (1, 0))
+
+    def test_the_manifest_shape_is_an_error(self):
+        d = copy_register()
+        p = d / self.AR
+        p.write_text(p.read_text() + '"u-0000aa" = "CAP-0002"\n')
+        k = d / "exports" / "kit" / "2026-10-30" / "MANIFEST.toml"
+        k.write_text(k.read_text() + '\n[cites]\n"kit/links.toml" = "CAP-0002"\n')
+        f, _ = check_register.run(d, today=TODAY)
+        errs = [i for i in self.inbound(f) if i["level"] == "error"]
+        self.assertTrue(any(i["where"] == self.AR and "u-0000aa" in i["message"] and "[ids]" in i["message"] for i in errs), errs)
+        self.assertTrue(any(i["where"] == "exports/kit/2026-10-30/MANIFEST.toml" and "no cites" in i["message"] for i in errs), errs)
+
+    def test_no_node_may_name_the_agent_registry_as_its_source(self):
+        d = copy_register()
+        p = d / "capabilities" / "CAP-0005.toml"
+        text = re.sub(r"(?ms)^\[source\].*?(?=^\[|\Z)", "", p.read_text())
+        p.write_text(text + '\n[source]\nsystem = "agent_registry"\nusage_id = "u-8a04d7"\n')
+        f, _ = check_register.run(d, today=TODAY)
+        self.assertTrue(any(i["check"] == "sources" and i["where"] == "capabilities/CAP-0005.toml"
+                            and "not authoritative" in i["message"] for i in f.errors), f.errors)
+
+    def test_reconcile_lists_references_and_skips_stale_and_unregistered(self):
+        d = copy_register()
+        first = reconcile.reconcile(d / "exports" / "agent_registry" / "2026-11-27", d)
+        self.assertEqual((first["stale_nodes"], first["unregistered"]), ([], []))
+        self.assertEqual(len(first["references"]["added"]), 3)
+        nxt = d / "exports" / "agent_registry" / "2026-12-04"
+        nxt.mkdir()
+        text = (d / self.AR).read_text().replace('previous = ""', 'previous = "exports/agent_registry/2026-11-27"')
+        text = text.replace('"u-8a04d7" = "CAP-0005"', '"u-8a04d7" = "CAP-0004"').replace('"u-c51e90" = "prov-17"\n', "")
+        (nxt / "MANIFEST.toml").write_text(text)
+        r = reconcile.reconcile(nxt, d)
+        self.assertEqual(r["references"], {"added": [], "changed": [{"usage_id": "u-8a04d7", "from": "CAP-0005", "to": "CAP-0004"}],
+                                           "removed": [{"usage_id": "u-c51e90", "cites": "prov-17"}]})
+        self.assertNotIn("references", reconcile.reconcile(d / "exports" / "kit" / "2026-10-30", d))
+        _, summary = check_register.run(d, today=TODAY)
+        self.assertEqual(summary["inbound"]["agent_registry"]["export"], "exports/agent_registry/2026-12-04")
+
+
 if __name__ == "__main__":
     unittest.main()
 

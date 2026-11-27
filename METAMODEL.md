@@ -63,6 +63,18 @@ The start is never among what a walk reaches, with or without `--children`: an e
 A third, named walk, `--walk thread` (`THREAD`, decision 0018): a step to its supporting process (`is_supported_by`), the process to what it realises, the applications that support it and the information it reads or writes (`realizes`, `supports` inverse, `crud`), an application to what it manages (`manages`); every step away from the journey.
 Alignment rule A1 (`check_alignment`, decision 0018), warning only: an approved product with no approved journey; a capability it requires that its journeys' thread walk with `--children` does not reach; one reached that it does not require. Reported with its denominator; no exception mechanism.
 
+**Inbound references.** A system in `sources.toml` with `authoritative_for = []` authors no node:
+no `[source]` may name it (`check_nodes`). With `cites` (taxonomies) its export's `MANIFEST.toml`
+carries `[cites]`, an id from `[ids]` to the one register id it cites; no field of the cited record
+beyond that. `check_inbound`, on each system's latest export: an error for the manifest's shape only
+(a `[cites]` key absent from `[ids]`; `[cites]` for a system without `cites`); a warning `inbound` per
+citation of an id that is no node (at the manifest), a node outside `cites`, one `draft`, `proposed` or
+`rejected`, or one `deprecated` or `retired` (at the node). Summary per system: carried (the
+denominator), citing, approved, not yet approved, withdrawn, no node; approved nodes cited of all
+approved. Not a coverage rule; no exception. `reconcile.py` skips `stale_nodes` and `unregistered` for
+such a system and writes `references` (added, changed, removed against `previous`); `export_counts`
+leaves it out. `agent_registry` is the first: usages citing capabilities (decision 0023).
+
 **What the register never holds.** The content of a node beyond its checked `name`: no
 attributes copied from ARIS, Archi or the EDM. The moment a file carries a field the tool owns,
 there are two records.
