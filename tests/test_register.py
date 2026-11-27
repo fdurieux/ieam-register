@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import shutil
 import sys
 import tempfile
@@ -619,3 +620,75 @@ class SecondSubject(unittest.TestCase):
         self.assertNotIn("jef_kit:requirements.json#JDL-150", by_id["REL-03005"]["evidence"])
         for lid in ("REL-06008", "REL-07007", "REL-03005"):
             self.assertTrue(by_id[lid]["approval"]["record"].endswith("0007-three-citations-re-read-and-the-walk-follows-approved-links.md"), lid)
+
+
+class SeamCheck(unittest.TestCase):
+    """The seam check's readings (decision 0025), on synthetic inputs: no pumllint, no aris2puml."""
+
+    TODAY_JS = """function exportModel(model) {
+  var occs = model.ObjOccList();
+  for (var i = 0; i < occs.length; i++) {
+    var occ = occs[i], def = occ.ObjDef(), type = def.TypeNum();
+      var linked = def.AssignedModels();
+      if (linked.length > 0) node.ref = attr(linked[0], Constants.AT_ID) || linked[0].GUID();
+  }
+  var doc = {
+    process: {
+      id: attr(model, Constants.AT_ID) || model.GUID(),
+      name: model.Name(-1),
+"""
+
+    def test_it_calls_the_command_lines_and_keeps_the_id_contract(self):
+        import seam_check
+        src = (ROOT / "tools" / "seam_check.py").read_text()
+        self.assertIsNone(re.search(r"^\s*(import|from)\s+(pumllint|aris2puml)\b", src, re.M))
+        self.assertIn(seam_check.DIGITS, check_register.ID_RE.pattern)
+
+    def test_trace_output_dropped_added_and_warned(self):
+        import seam_check
+        doc = {"requirements": [{"id": "CAP-0002", "covered": True}, {"id": "CAP-0009", "covered": True}],
+               "unknownReferences": [], "unlinkedDiagrams": [], "summary": {}}
+        ok, lines = seam_check.read_trace(json.dumps(doc), "", 0, ["CAP-0002", "CAP-0003"])
+        self.assertFalse(ok)
+        self.assertIn("dropped: CAP-0003", lines)
+        self.assertIn("added: CAP-0009", lines)
+        ok, lines = seam_check.read_trace(json.dumps(doc), "warning: x.txt:1: requirement ID 'CAP-0002 x'", 0,
+                                          ["CAP-0002", "CAP-0009"])
+        self.assertFalse(ok)
+        self.assertTrue(seam_check.read_trace(json.dumps(doc), "", 0, ["CAP-0002", "CAP-0009"])[0])
+        self.assertFalse(seam_check.read_trace("not json", "boom", 2, ["CAP-0002"])[0])
+
+    def test_the_footer_pattern_is_held_to_four_or_more_digits(self):
+        import seam_check
+        ids = ["PROC-0001", "PROC-0010"]
+        ok, lines = seam_check.probe_pattern(r"PROC-\d{4}", ids)
+        self.assertFalse(ok)
+        self.assertIn("PROC-10000 read as PROC-1000", lines)
+        self.assertTrue(seam_check.probe_pattern(r"PROC-\d{4,}", ids)[0])
+        self.assertFalse(seam_check.probe_pattern(r"PROC-\d+", ids)[0])   # reads PROC-123, not an id
+
+    def test_the_report_script_is_read_against_decision_0022(self):
+        import seam_check
+        ok, lines = seam_check.check_report_script(self.TODAY_JS, "AT_ID")
+        self.assertFalse(ok)
+        self.assertIn("on `model`, a model", lines[0])
+        self.assertIn("on `linked[0]`, a model", lines[1])
+        fixed = self.TODAY_JS.replace("attr(linked[0], Constants.AT_ID) || linked[0].GUID()",
+                                      "attr(def, Constants.AT_ID) || def.GUID()")
+        fixed = fixed.replace("  var doc = {", "  var fdef = model.SuperiorObjDefs()[0];\n  var doc = {")
+        fixed = fixed.replace("attr(model, Constants.AT_ID) || model.GUID()", "attr(fdef, Constants.AT_ID) || fdef.GUID()")
+        ok, lines = seam_check.check_report_script(fixed, "AT_ID")
+        self.assertTrue(ok, lines)
+        self.assertFalse(seam_check.check_report_script(fixed, "AT_REGISTER_ID")[0])
+        ok, lines = seam_check.check_report_script("var doc = {};", "AT_ID")
+        self.assertFalse(ok)
+        self.assertIn("not found", lines[0])
+
+    def test_the_floor_is_read_from_the_check_extra(self):
+        import seam_check
+        text = '[project]\nname = "x"\n[project.optional-dependencies]\ncheck = ["pumllint>=0.33"]\ntest = ["pytest>=7"]\n'
+        self.assertEqual(seam_check.read_floor(text), ("pumllint>=0.33", "0.33"))
+        self.assertTrue(seam_check.same_release("pumllint 0.33.0", "0.33"))
+        self.assertFalse(seam_check.same_release("pumllint 0.35.0", "0.33"))
+        with self.assertRaises(seam_check.SetupError):
+            seam_check.read_floor('[project]\nname = "x"\n')

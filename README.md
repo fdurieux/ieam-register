@@ -37,7 +37,7 @@ The opportunity canvas, SWOT and a drawing of this repository:
 | `people/` | the handles issued to people who give knowledge: handle, unit, roles, dates and, in an organisation's private register, who holds each one; never a name (decisions 0009 and 0021) | **authoritative** |
 | `exports/<system>/<date>/` | a dated mirror of a source of record: a manifest of digests and ids, a reconciliation report | a mirror with provenance, never the record |
 | `reports/<date>/` | coverage, impact and reconciliation summaries, written at a tag | derived, never the record |
-| `tools/` | standard-library Python: the checker, reconcile, impact, inventory | |
+| `tools/` | standard-library Python: the checker, reconcile, impact, inventory, the seam check | |
 
 The hierarchy inside a taxonomy is the `parent` field, never nested folders. Node ids are
 `<PREFIX>-<4 digits>`: `CAP`, `PRD`, `JRN`, `PROC`, `APP`, `ENT`, `ORG`; links are `REL-…`.
@@ -121,6 +121,38 @@ the usages the export carries, those citing a capability, how their citations re
 many of your approved capabilities any usage cites. Deprecating a capability therefore names, in
 the same pull request, the usages to tell; the usage itself is corrected in its own registry.
 The export in this repository is synthetic.
+
+## The seam check
+
+Two tools outside this repository read what the register writes. pumllint's `trace` reads the
+capability inventory (`tools/inventory.py`) to report which capabilities have no process
+diagram. aris2puml converts ARIS process models into diagrams whose footer carries the process
+id. The *seam check* (decision 0025) tells you whether they still read and write the register's
+ids as the register's contracts say. It runs daily, on demand and on a pull request that changes
+the inventory or `metamodel/sources.toml`, in its own workflow, `seam`:
+
+```
+python tools/seam_check.py --aris2puml ../aris2puml \
+    --pumllint release=<bin> --pumllint main=<bin> --pumllint floor=<bin> --aris2puml-bin <bin>
+```
+
+It installs pumllint and aris2puml in the workflow's job only. No register tool imports or needs
+them, so the checks above stay standard library only. It prints three checks, each PASS or FAIL,
+with the version or commit it read:
+
+1. every id the inventory writes is read by pumllint's `trace`, at its latest release and at its
+   `main`, with none dropped, added or warned about;
+2. aris2puml's footer pattern reads every register process id whole (`PROC-` and four or more
+   digits), its footers are read back by `trace`, and its ARIS report script takes the id from the
+   attribute `sources.toml` names on the function definition (decision 0022);
+3. the oldest pumllint release aris2puml accepts passes check 1.
+
+**When it is red.** It blocks nothing: it is not a required check, and your pull requests merge
+on the `register` workflow as before. Read the failing line: it names the id dropped or misread
+and the file it came from. The side that differs from the register's recorded contract fixes
+it: pumllint for check 1, aris2puml for checks 2 and 3. The exception is a pull request here
+that changed `tools/inventory.py` or `sources.toml` and turned it red: fix that pull request, or
+record the new contract in a decision before merging. Never edit the check to make it pass.
 
 ## The questions the pilot answers
 
