@@ -1,0 +1,53 @@
+name: seam
+# Decision 0025: pumllint and aris2puml held to the register's contracts. Never a required check:
+# the `register` workflow is the gate, and a red run here blocks nothing and opens nothing. Red
+# means the side that differs from the register's recorded contract moves (decision 0025 §5), or
+# the other side's main is itself broken. The installs live in this job's virtual environments,
+# outside the checkout; no register tool imports or needs them (§3).
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - tools/inventory.py
+      - metamodel/sources.toml
+      - .github/workflows/seam.yml
+permissions:
+  contents: read
+jobs:
+  seam:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: aris2puml and pumllint at main, outside the checkout
+        run: |
+          git clone --depth 1 https://github.com/fdurieux/aris2puml "$RUNNER_TEMP/aris2puml"
+          git clone --depth 1 https://github.com/fdurieux/pumllint "$RUNNER_TEMP/pumllint"
+          echo "aris2puml main $(git -C "$RUNNER_TEMP/aris2puml" rev-parse --short HEAD)"
+          echo "pumllint main $(git -C "$RUNNER_TEMP/pumllint" rev-parse --short HEAD)"
+      - name: one environment per command line, none of them the register's
+        run: |
+          t="$RUNNER_TEMP"
+          python -m venv "$t/release" && "$t/release/bin/pip" install -q pumllint
+          python -m venv "$t/main" && "$t/main/bin/pip" install -q "$t/pumllint"
+          floor=$(python tools/seam_check.py --aris2puml "$t/aris2puml" --print-floor)
+          python -m venv "$t/floor" && "$t/floor/bin/pip" install -q "pumllint==$floor"
+          python -m venv "$t/aris" && "$t/aris/bin/pip" install -q "$t/aris2puml"
+      - name: the seam check
+        run: |
+          t="$RUNNER_TEMP"
+          python tools/seam_check.py --aris2puml "$t/aris2puml" \
+            --pumllint release="$t/release/bin/pumllint" \
+            --pumllint main="$t/main/bin/pumllint" \
+            --pumllint floor="$t/floor/bin/pumllint" \
+            --aris2puml-bin "$t/aris/bin/aris2puml" \
+            --json "$t/seam.json" | tee "$t/seam.txt"
+          status=${PIPESTATUS[0]}
+          { echo '```'; cat "$t/seam.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: seam, path: "${{ runner.temp }}/seam.json", if-no-files-found: ignore }

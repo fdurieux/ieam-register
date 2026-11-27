@@ -26,13 +26,23 @@ Approval stays the maintainer's word (decision 0019).
 ```bash
 python tools/check_register.py                      # the working tree; exit 1 on any error
 python tools/check_register.py --previous origin/main   # plus lifecycle transitions against a ref
-python -m unittest discover -s tests                # forty tests, standard library only
+python -m unittest discover -s tests                # forty-five tests, standard library only
 ```
 
 Both must pass. CI runs them on every pull request (with `--previous` set
 to the base) and on `main`; a tag `v*` also writes `reports/<date>/`.
 Standard library only, Python 3.11 or later (`tomllib`); no dependency
 is added without a decision record.
+
+The seam check (decision 0025): `.github/workflows/seam.yml` runs
+`tools/seam_check.py` daily, on `workflow_dispatch` and on a pull request
+touching `tools/inventory.py`, `metamodel/sources.toml` or itself. It
+installs pumllint (release, `main`, aris2puml's floor) and aris2puml
+(`main`) in the job's own environments; `seam_check.py` imports neither,
+calls their CLIs, reads aris2puml's source. Never a required check; red
+blocks nothing, and the side differing from the recorded contract moves
+(§5). A pull request here that turns it red by changing `inventory.py` or
+`sources.toml` fixes itself or records the new contract first.
 
 ## Pull requests
 
