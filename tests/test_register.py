@@ -538,3 +538,84 @@ class SecondSubject(unittest.TestCase):
         self.assertNotIn("jef_kit:requirements.json#JDL-150", by_id["REL-03005"]["evidence"])
         for lid in ("REL-06008", "REL-07007", "REL-03005"):
             self.assertTrue(by_id[lid]["approval"]["record"].endswith("0007-three-citations-re-read-and-the-walk-follows-approved-links.md"), lid)
+
+
+def later_export(d: Path, system: str, date: str, ids: dict[str, str], previous: str = "") -> Path:
+    """A synthetic export folder: a MANIFEST with the given [ids] and no files."""
+    folder = d / "exports" / system / date
+    folder.mkdir(parents=True)
+    lines = [f"exported_on = {date}T00:00:00Z", f'source = "{system}"', 'source_version = "synthetic"',
+             'tool = "tests"', 'tool_version = "0"', f'previous = "{previous}"', "", "[files]", "", "[ids]"]
+    lines += [f'"{k}" = "{v}"' for k, v in ids.items()]
+    (folder / "MANIFEST.toml").write_text("\n".join(lines) + "\n")
+    return folder
+
+
+def point(d: Path, path: str, old: str, new: str):
+    p = d / path
+    p.write_text(p.read_text().replace(old, new))
+
+
+class NameCheck(unittest.TestCase):
+    """Decision 0024 (issue #39): a node's name against the name the latest export of its system gives its id."""
+
+    def _kit_copy(self) -> Path:
+        d = copy_register()
+        point(d, "processes/PROC-0004.toml", 'kit_path = "kit/quote_process.bpmn"', 'kit_path = "kit/quote_process.bpmn#Task_Price"')
+        point(d, "processes/PROC-0002.toml", 'kit_path = "kit/quote_process.bpmn"', 'kit_path = "kit/quote_process.bpmn#Task_Validate"')
+        point(d, "processes/PROC-0005.toml", 'kit_path = "kit/quote_process.bpmn"', 'kit_path = "kit/quote_process.bpmn#Task_Notify"')
+        later_export(d, "kit", "2026-12-01", {"kit/quote_process.bpmn#Task_Price": "Price the quote",
+                                             "kit/quote_process.bpmn#Task_Validate": "Check the request"},
+                     previous="exports/kit/2026-10-30")
+        return d
+
+    def _for(self, f, nid):
+        return [i for i in f.items if f"/{nid}.toml" in i["where"] and i["check"] in ("name", "stale")]
+
+    def test_a_matching_name_gives_no_finding(self):
+        f, summary = check_register.run(self._kit_copy(), today=TODAY)
+        self.assertEqual(self._for(f, "PROC-0004"), [])
+        self.assertGreaterEqual(summary["names"]["matched"], 1)
+        self.assertNotIn("PROC-0004", [x["id"] for x in summary["names"]["differing"] + summary["names"]["stale"]])
+
+    def test_a_differing_name_names_the_node_both_names_and_the_folder(self):
+        f, summary = check_register.run(self._kit_copy(), today=TODAY)
+        hits = self._for(f, "PROC-0002")
+        self.assertEqual(len(hits), 1, hits)
+        self.assertEqual((hits[0]["level"], hits[0]["check"]), (check_register.NAME_LEVEL, "name"))
+        for part in ("Validate the request", "Check the request", "exports/kit/2026-12-01"):
+            self.assertIn(part, hits[0]["message"])
+        self.assertIn({"id": "PROC-0002", "name": "Validate the request", "export_name": "Check the request",
+                       "export": "exports/kit/2026-12-01"}, summary["names"]["differing"])
+        # the register as it stands: the kit exports name documents, so every whole-document node differs
+        f, summary = check_register.run(ROOT, today=TODAY)
+        nm = summary["names"]
+        self.assertEqual((nm["denominator"], nm["matched"], len(nm["differing"]), len(nm["stale"]),
+                          nm["unchecked_no_export"], nm["unchecked_part"]), (57, 0, 53, 0, 0, 4))
+        self.assertEqual([i for i in f.items if i["check"] == "name" and i["level"] == "error"], [])
+
+    def test_a_system_with_no_export_is_unchecked_and_counted(self):
+        d = copy_register()
+        guid = "00000000-0000-4000-8000-000000000003"   # synthetic: a function definition's GUID (decision 0022)
+        point(d, "processes/PROC-0003.toml", 'system = "kit"\nkit_path = "kit/screening_decision.dmn"',
+              f'system = "aris"\naris_guid = "{guid}"')
+        f, summary = check_register.run(d, today=TODAY)
+        self.assertEqual(self._for(f, "PROC-0003"), [])
+        self.assertEqual(summary["names"]["unchecked_no_export"], 1)
+        self.assertEqual(summary["names"]["denominator"], 57)
+        # once exports/aris holds a folder, the definition's name is read and compared
+        later_export(d, "aris", "2026-12-01", {guid: "Screen the shipper's sanctions"})
+        f, summary = check_register.run(d, today=TODAY)
+        self.assertEqual(summary["names"]["unchecked_no_export"], 0)
+        self.assertEqual([i["check"] for i in self._for(f, "PROC-0003")], ["name"])
+
+    def test_a_vanished_id_is_stale_never_deleted_and_has_no_name_finding(self):
+        d = self._kit_copy()
+        f, summary = check_register.run(d, today=TODAY)
+        hits = self._for(f, "PROC-0005")
+        self.assertEqual([(i["level"], i["check"]) for i in hits], [("warning", "stale")])
+        self.assertIn("kit/quote_process.bpmn#Task_Notify", hits[0]["message"])
+        self.assertIn({"id": "PROC-0005", "kit_path": "kit/quote_process.bpmn#Task_Notify", "export": "exports/kit/2026-12-01"},
+                      summary["names"]["stale"])
+        self.assertTrue((d / "processes" / "PROC-0005.toml").exists())
+        self.assertIn('name = "Notify the shipper"', (d / "processes" / "PROC-0005.toml").read_text())

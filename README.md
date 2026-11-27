@@ -108,6 +108,26 @@ approved product that no journey concerns, a capability the product requires tha
 journey's steps reaches by the thread walk, and a capability those steps reach that the product
 does not require. The checker prints how many of the approved products are aligned.
 
+**Names against the latest export** (decision 0024, proposed). A node's `name` is the one thing it
+repeats from its source of record, so the checker compares it with the name the latest export of
+that system gives the node's id. You get one of three things back per node:
+
+- `WARNING name`: the two names differ. The line gives the node, both names, the id and the export
+  folder. If the source of record renamed it, set `name` to the export's in the pull request that
+  lands the export; if the source of record is wrong, fix it there and the next export closes the
+  warning. Never edit an export folder.
+- `WARNING stale`: the latest export no longer carries the node's id. Find out whether it was
+  deleted, moved or re-keyed in the source of record; the checker never deletes the node, and
+  gives it no name warning as well.
+- nothing, when the names match.
+
+A summary line, `names: …`, counts the matches over the nodes checked, and the nodes left
+unchecked over every node with a `[source]`: those whose system has no export yet (ARIS, Archi and
+the EDM here), and those whose id names a part of a document (`<path>#<part>`) that the export
+carries only whole. Neither warning fails the merge, and no exception is needed for one. In this
+test case the kit exports give each document its file name, so every kit node that points at a
+whole document reads as differing: the export, not the node, lacks the name.
+
 ## The questions the pilot answers
 
 ```

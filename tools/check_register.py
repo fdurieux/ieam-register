@@ -1,7 +1,8 @@
 """The register's checks: types, directions, required metadata, hierarchy cycles, duplicate
 identities, cardinalities, dangling links, lifecycle consistency, approvals, knowledge a person
 gave and the handles it is given under (decisions 0008, 0009), glossary, the coverage rules C1 to C4 with expiring exceptions (C4, decision 0020), and the product–journey alignment
-rule A1 at warning level (decision 0018). Exit 1 on any error; warnings exit 0.
+rule A1 at warning level (decision 0018), and each node's name against the latest export of its system
+at warning level (decision 0024). Exit 1 on any error; warnings exit 0.
 
     python tools/check_register.py                 # check the working tree
     python tools/check_register.py --previous HEAD # also diff lifecycle states against a commit
@@ -486,13 +487,65 @@ def export_counts(reg: dict) -> dict:
     (decision 0017). Reported only; not a coverage rule."""
     out = {}
     for sysname in sorted(reg["sources"]["system"]):
-        folders = sorted(p.parent for p in (reg["root"] / "exports" / sysname).glob("*/MANIFEST.toml"))
-        if not folders:
+        folder = _latest_export(reg, sysname)
+        if folder is None:
             continue
-        man = load_toml(folders[-1] / "MANIFEST.toml")
+        man = load_toml(folder / "MANIFEST.toml")
         n = len(man.get("ids", {}))
         u = len(unregistered(reg, man))
-        out[sysname] = {"export": folders[-1].relative_to(reg["root"]).as_posix(), "denominator": n, "registered": n - u, "unregistered": u}
+        out[sysname] = {"export": folder.relative_to(reg["root"]).as_posix(), "denominator": n, "registered": n - u, "unregistered": u}
+    return out
+
+
+def _latest_export(reg: dict, sysname: str) -> Path | None:
+    """The latest export folder of a system, by folder date (the name), or None when it has none."""
+    folders = sorted(p.parent for p in (reg["root"] / "exports" / sysname).glob("*/MANIFEST.toml"))
+    return folders[-1] if folders else None
+
+
+# decision 0024: the level of a name finding; a warning, never excused by an exception
+NAME_LEVEL = "warning"
+
+
+def check_names(reg: dict, f: Findings) -> dict:
+    """Decision 0024 (issue #39): each node with a [source] whose system has an export is compared
+    with the latest export's [ids]: the node's `name` against the name the export gives its id. A
+    difference is a `name` finding with the node, both names and the folder. An id the export no
+    longer carries is a `stale` warning, never a deletion, and no name finding. An id with a part
+    (`#`) the export carries only as a whole document is unchecked: the document's name is not the
+    part's. For `aris` the id is the function definition's GUID, so the name read is the
+    definition's (decision 0022). Reported with its denominator."""
+    out = {"denominator": 0, "matched": 0, "differing": [], "stale": [], "unchecked_no_export": 0, "unchecked_part": 0}
+    manifests: dict[str, tuple[str, dict] | None] = {}
+    for nid in sorted(reg["nodes"]):
+        n = reg["nodes"][nid]
+        src = n.get("source") or {}
+        sysname = src.get("system")
+        spec = reg["sources"]["system"].get(sysname or "")
+        if spec is None or not src.get(spec["id_field"]):
+            continue   # no [source], or one check_nodes already refuses
+        out["denominator"] += 1
+        if sysname not in manifests:
+            folder = _latest_export(reg, sysname)
+            manifests[sysname] = (folder.relative_to(reg["root"]).as_posix(), load_toml(folder / "MANIFEST.toml")) if folder else None
+        if manifests[sysname] is None:
+            out["unchecked_no_export"] += 1
+            continue
+        folder, man = manifests[sysname]
+        ids, ext = man.get("ids", {}), src[spec["id_field"]]
+        where = f"{n['_taxonomy']}/{nid}.toml"
+        if ext in ids:
+            if ids[ext] == n.get("name"):
+                out["matched"] += 1
+            else:
+                out["differing"].append({"id": nid, "name": n.get("name"), "export_name": ids[ext], "export": folder})
+                getattr(f, "error" if NAME_LEVEL == "error" else "warn")(
+                    "name", where, f"name {n.get('name')!r} differs from {ids[ext]!r}, the name {folder} gives {ext}")
+        elif ext.split("#")[0] in ids:
+            out["unchecked_part"] += 1
+        else:
+            out["stale"].append({"id": nid, spec["id_field"]: ext, "export": folder})
+            f.warn("stale", where, f"{ext} is not among the ids of {folder}, the latest {sysname} export; a stale finding, never a deletion")
     return out
 
 
@@ -549,6 +602,7 @@ def run(root: Path = ROOT, previous: str | None = None, today: dt.date | None = 
     if previous:
         check_transitions(reg, f, previous)
     summary["exports"] = export_counts(reg)
+    summary["names"] = check_names(reg, f)
     summary["nodes"] = len(reg["nodes"])
     summary["links"] = sum(len(r["links"]) for r in reg["relationships"].values())
     return f, summary
@@ -573,6 +627,11 @@ def main(argv=None) -> int:
           f"{len(a1['required_not_reached'])} required not reached, {len(a1['reached_not_required'])} reached not required")
     for sysname, s in summary["exports"].items():
         print(f"{sysname}: {s['registered']}/{s['denominator']} export ids held by a node, {s['unregistered']} unregistered ({s['export']})")
+    nm = summary["names"]
+    checked = nm["denominator"] - nm["unchecked_no_export"] - nm["unchecked_part"] - len(nm["stale"])
+    print(f"names: {nm['matched']}/{checked} checked against the latest export match, {len(nm['differing'])} differ, "
+          f"{len(nm['stale'])} stale; {nm['unchecked_no_export'] + nm['unchecked_part']}/{nm['denominator']} unchecked "
+          f"({nm['unchecked_no_export']} with no export of their system, {nm['unchecked_part']} a part of a document the export names whole)")
     print(f"{summary['nodes']} nodes, {summary['links']} links, {len(f.errors)} error(s), {len(f.items) - len(f.errors)} warning(s)")
     if a.report:
         a.report.parent.mkdir(parents=True, exist_ok=True)
