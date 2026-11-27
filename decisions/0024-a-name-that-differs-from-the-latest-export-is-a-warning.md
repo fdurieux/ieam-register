@@ -39,7 +39,7 @@ On `main` at 686fba3 with this check: 57 nodes carry a `[source]` (28 `kit`, 29 
 0 are stale, 4 are unchecked as parts (CAP-0002, CAP-0003, CAP-0004 and ENT-0004, on
 `contract/decision_table.md#DT-…`), 0 for want of an export. Every difference has one cause: the kit
 manifests' `[ids]` give each document its file name (`"contract/spec.md" = "spec.md"`), written by the kit's
-document list, and five nodes may point at one document. The register's names are the concepts'
+document list, and up to eight nodes point at one document (`contracts/chain.md`). The register's names are the concepts'
 ("Freight quoting", "QuoteAPI"). The export is the side that is wrong for this check: it carries no name of
 what a node points at. No node name is a typo. Under an error level, `main` would fail with 53 errors and no
 pull request could fix them: the export is append-only, and setting 53 names to file names would make the
