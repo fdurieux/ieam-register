@@ -487,6 +487,87 @@ class RegisterChecks(unittest.TestCase):
         self.assertEqual(summary["exports"]["jef_kit"]["denominator"], 50)
 
 
+class InboundReferences(unittest.TestCase):
+    """Decision 0023: an agent registry's usages cite a capability by id; the register reads them
+    from the registry's export, warns per citation that does not rest on an approved capability,
+    and reports the counts with their denominator. No node, no link."""
+    AR = "exports/agent_registry/2026-11-27/MANIFEST.toml"
+
+    def inbound(self, f):
+        return [i for i in f.items if i["check"] == "inbound"]
+
+    def test_the_synthetic_export_is_reported_with_its_denominator(self):
+        f, summary = check_register.run(ROOT, today=TODAY)
+        s = summary["inbound"]["agent_registry"]
+        self.assertEqual({k: s[k] for k in ("export", "denominator", "citing", "approved", "not_yet_approved", "withdrawn", "no_node", "outside", "approved_cited", "approved_total")},
+                         {"export": "exports/agent_registry/2026-11-27", "denominator": 4, "citing": 3, "approved": 1, "not_yet_approved": 1,
+                          "withdrawn": 0, "no_node": 1, "outside": 0, "approved_cited": 1, "approved_total": 7})
+        hits = self.inbound(f)
+        self.assertEqual([i["level"] for i in hits], ["warning", "warning"], hits)
+        self.assertEqual({i["where"] for i in hits}, {"capabilities/CAP-0005.toml", self.AR})
+        self.assertTrue(any("prov-17" in i["message"] and "no node" in i["message"] for i in hits))
+        self.assertTrue(any("CAP-0005" in i["message"] and "not yet approved" in i["message"] for i in hits))
+        self.assertNotIn("agent_registry", summary["exports"], "a system that authors no node has no unregistered count")
+
+    def test_a_deprecated_capability_moves_its_usage_to_withdrawn(self):
+        d = copy_register()
+        p = d / "capabilities" / "CAP-0003.toml"
+        p.write_text(p.read_text().replace('state = "approved"', 'state = "deprecated"'))
+        f, summary = check_register.run(d, today=TODAY)
+        s = summary["inbound"]["agent_registry"]
+        self.assertEqual((s["approved"], s["withdrawn"], s["approved_cited"], s["approved_total"]), (0, 1, 0, 6))
+        at = [i for i in f.items if i["where"] == "capabilities/CAP-0003.toml" or "CAP-0003" in i["message"]]
+        self.assertTrue(any(i["check"] == "inbound" and i["level"] == "warning" and "withdrawn" in i["message"]
+                            and i["where"] == "capabilities/CAP-0003.toml" for i in at), at)
+        self.assertTrue(any(i["check"] == "lifecycle" and i["level"] == "error" for i in at), "the approved links fail beside it")
+        self.assertEqual([i for i in self.inbound(f) if i["level"] == "error"], [])
+
+    def test_a_node_outside_the_cited_taxonomies_is_a_warning(self):
+        d = copy_register()
+        p = d / self.AR
+        p.write_text(p.read_text().replace('"u-c51e90" = "prov-17"', '"u-c51e90" = "PRD-0002"'))
+        f, summary = check_register.run(d, today=TODAY)
+        self.assertTrue(any(i["where"] == "products/PRD-0002.toml" and i["level"] == "warning" for i in self.inbound(f)))
+        self.assertEqual((summary["inbound"]["agent_registry"]["outside"], summary["inbound"]["agent_registry"]["no_node"]), (1, 0))
+
+    def test_the_manifest_shape_is_an_error(self):
+        d = copy_register()
+        p = d / self.AR
+        p.write_text(p.read_text() + '"u-0000aa" = "CAP-0002"\n')
+        k = d / "exports" / "kit" / "2026-10-30" / "MANIFEST.toml"
+        k.write_text(k.read_text() + '\n[cites]\n"kit/links.toml" = "CAP-0002"\n')
+        f, _ = check_register.run(d, today=TODAY)
+        errs = [i for i in self.inbound(f) if i["level"] == "error"]
+        self.assertTrue(any(i["where"] == self.AR and "u-0000aa" in i["message"] and "[ids]" in i["message"] for i in errs), errs)
+        self.assertTrue(any(i["where"] == "exports/kit/2026-10-30/MANIFEST.toml" and "no cites" in i["message"] for i in errs), errs)
+
+    def test_no_node_may_name_the_agent_registry_as_its_source(self):
+        d = copy_register()
+        p = d / "capabilities" / "CAP-0005.toml"
+        text = re.sub(r"(?ms)^\[source\].*?(?=^\[|\Z)", "", p.read_text())
+        p.write_text(text + '\n[source]\nsystem = "agent_registry"\nusage_id = "u-8a04d7"\n')
+        f, _ = check_register.run(d, today=TODAY)
+        self.assertTrue(any(i["check"] == "sources" and i["where"] == "capabilities/CAP-0005.toml"
+                            and "not authoritative" in i["message"] for i in f.errors), f.errors)
+
+    def test_reconcile_lists_references_and_skips_stale_and_unregistered(self):
+        d = copy_register()
+        first = reconcile.reconcile(d / "exports" / "agent_registry" / "2026-11-27", d)
+        self.assertEqual((first["stale_nodes"], first["unregistered"]), ([], []))
+        self.assertEqual(len(first["references"]["added"]), 3)
+        nxt = d / "exports" / "agent_registry" / "2026-12-04"
+        nxt.mkdir()
+        text = (d / self.AR).read_text().replace('previous = ""', 'previous = "exports/agent_registry/2026-11-27"')
+        text = text.replace('"u-8a04d7" = "CAP-0005"', '"u-8a04d7" = "CAP-0004"').replace('"u-c51e90" = "prov-17"\n', "")
+        (nxt / "MANIFEST.toml").write_text(text)
+        r = reconcile.reconcile(nxt, d)
+        self.assertEqual(r["references"], {"added": [], "changed": [{"usage_id": "u-8a04d7", "from": "CAP-0005", "to": "CAP-0004"}],
+                                           "removed": [{"usage_id": "u-c51e90", "cites": "prov-17"}]})
+        self.assertNotIn("references", reconcile.reconcile(d / "exports" / "kit" / "2026-10-30", d))
+        _, summary = check_register.run(d, today=TODAY)
+        self.assertEqual(summary["inbound"]["agent_registry"]["export"], "exports/agent_registry/2026-12-04")
+
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -557,65 +638,73 @@ def point(d: Path, path: str, old: str, new: str):
 
 
 class NameCheck(unittest.TestCase):
-    """Decision 0024 (issue #39): a node's name against the name the latest export of its system gives its id."""
+    """Decision 0024 (issue #39): a node's name against the name the latest export of its system gives its id,
+    where that system's export names concepts. GUIDs and names below are synthetic."""
+    GUIDS = {"PROC-0002": "00000000-0000-4000-8000-000000000002", "PROC-0003": "00000000-0000-4000-8000-000000000003",
+             "PROC-0004": "00000000-0000-4000-8000-000000000004", "PROC-0005": "00000000-0000-4000-8000-000000000005"}
 
-    def _kit_copy(self) -> Path:
+    def _to_aris(self, d: Path, nid: str):
+        p = d / "processes" / f"{nid}.toml"
+        p.write_text(re.sub(r'system = "kit"\nkit_path = "[^"]*"', f'system = "aris"\naris_guid = "{self.GUIDS[nid]}"', p.read_text()))
+
+    def _aris_copy(self) -> Path:
+        """PROC-0002, 0004 and 0005 on aris; its export renames 0002's definition and no longer carries 0005's."""
         d = copy_register()
-        point(d, "processes/PROC-0004.toml", 'kit_path = "kit/quote_process.bpmn"', 'kit_path = "kit/quote_process.bpmn#Task_Price"')
-        point(d, "processes/PROC-0002.toml", 'kit_path = "kit/quote_process.bpmn"', 'kit_path = "kit/quote_process.bpmn#Task_Validate"')
-        point(d, "processes/PROC-0005.toml", 'kit_path = "kit/quote_process.bpmn"', 'kit_path = "kit/quote_process.bpmn#Task_Notify"')
-        later_export(d, "kit", "2026-12-01", {"kit/quote_process.bpmn#Task_Price": "Price the quote",
-                                             "kit/quote_process.bpmn#Task_Validate": "Check the request"},
-                     previous="exports/kit/2026-10-30")
+        for nid in ("PROC-0002", "PROC-0004", "PROC-0005"):
+            self._to_aris(d, nid)
+        later_export(d, "aris", "2026-11-20", {self.GUIDS["PROC-0004"]: "Price the quote",
+                                               self.GUIDS["PROC-0002"]: "Validate the request",
+                                               self.GUIDS["PROC-0005"]: "Notify the shipper"})
+        later_export(d, "aris", "2026-12-01", {self.GUIDS["PROC-0004"]: "Price the quote",
+                                               self.GUIDS["PROC-0002"]: "Check the request"},
+                     previous="exports/aris/2026-11-20")
         return d
 
     def _for(self, f, nid):
         return [i for i in f.items if f"/{nid}.toml" in i["where"] and i["check"] in ("name", "stale")]
 
     def test_a_matching_name_gives_no_finding(self):
-        f, summary = check_register.run(self._kit_copy(), today=TODAY)
+        f, summary = check_register.run(self._aris_copy(), today=TODAY)
         self.assertEqual(self._for(f, "PROC-0004"), [])
-        self.assertGreaterEqual(summary["names"]["matched"], 1)
-        self.assertNotIn("PROC-0004", [x["id"] for x in summary["names"]["differing"] + summary["names"]["stale"]])
+        self.assertEqual(summary["names"]["matched"], 1)
 
     def test_a_differing_name_names_the_node_both_names_and_the_folder(self):
-        f, summary = check_register.run(self._kit_copy(), today=TODAY)
+        f, summary = check_register.run(self._aris_copy(), today=TODAY)
         hits = self._for(f, "PROC-0002")
-        self.assertEqual(len(hits), 1, hits)
-        self.assertEqual((hits[0]["level"], hits[0]["check"]), (check_register.NAME_LEVEL, "name"))
-        for part in ("Validate the request", "Check the request", "exports/kit/2026-12-01"):
-            self.assertIn(part, hits[0]["message"])
-        self.assertIn({"id": "PROC-0002", "name": "Validate the request", "export_name": "Check the request",
-                       "export": "exports/kit/2026-12-01"}, summary["names"]["differing"])
-        # the register as it stands: the kit exports name documents, so every whole-document node differs
-        f, summary = check_register.run(ROOT, today=TODAY)
-        nm = summary["names"]
-        self.assertEqual((nm["denominator"], nm["matched"], len(nm["differing"]), len(nm["stale"]),
-                          nm["unchecked_no_export"], nm["unchecked_part"]), (57, 0, 53, 0, 0, 4))
-        self.assertEqual([i for i in f.items if i["check"] == "name" and i["level"] == "error"], [])
+        self.assertEqual([(i["level"], i["check"]) for i in hits], [(check_register.NAME_LEVEL, "name")])
+        for part in ("Validate the request", "Check the request", self.GUIDS["PROC-0002"], "exports/aris/2026-12-01"):
+            self.assertIn(part, hits[0]["message"])   # the latest folder by date, not the earlier one
+        self.assertEqual(summary["names"]["differing"], [{"id": "PROC-0002", "name": "Validate the request",
+                                                          "export_name": "Check the request", "export": "exports/aris/2026-12-01"}])
 
     def test_a_system_with_no_export_is_unchecked_and_counted(self):
         d = copy_register()
-        guid = "00000000-0000-4000-8000-000000000003"   # synthetic: a function definition's GUID (decision 0022)
-        point(d, "processes/PROC-0003.toml", 'system = "kit"\nkit_path = "kit/screening_decision.dmn"',
-              f'system = "aris"\naris_guid = "{guid}"')
+        self._to_aris(d, "PROC-0003")
         f, summary = check_register.run(d, today=TODAY)
         self.assertEqual(self._for(f, "PROC-0003"), [])
-        self.assertEqual(summary["names"]["unchecked_no_export"], 1)
-        self.assertEqual(summary["names"]["denominator"], 57)
-        # once exports/aris holds a folder, the definition's name is read and compared
-        later_export(d, "aris", "2026-12-01", {guid: "Screen the shipper's sanctions"})
-        f, summary = check_register.run(d, today=TODAY)
-        self.assertEqual(summary["names"]["unchecked_no_export"], 0)
-        self.assertEqual([i["check"] for i in self._for(f, "PROC-0003")], ["name"])
+        self.assertEqual((summary["names"]["unchecked_no_export"], summary["names"]["denominator"]), (1, 57))
+        later_export(d, "aris", "2026-12-01", {self.GUIDS["PROC-0003"]: "Screen the shipper"})
+        _, summary = check_register.run(d, today=TODAY)
+        self.assertEqual((summary["names"]["unchecked_no_export"], summary["names"]["matched"]), (0, 1))
 
     def test_a_vanished_id_is_stale_never_deleted_and_has_no_name_finding(self):
-        d = self._kit_copy()
+        d = self._aris_copy()
         f, summary = check_register.run(d, today=TODAY)
         hits = self._for(f, "PROC-0005")
         self.assertEqual([(i["level"], i["check"]) for i in hits], [("warning", "stale")])
-        self.assertIn("kit/quote_process.bpmn#Task_Notify", hits[0]["message"])
-        self.assertIn({"id": "PROC-0005", "kit_path": "kit/quote_process.bpmn#Task_Notify", "export": "exports/kit/2026-12-01"},
-                      summary["names"]["stale"])
-        self.assertTrue((d / "processes" / "PROC-0005.toml").exists())
+        self.assertEqual(summary["names"]["stale"], [{"id": "PROC-0005", "aris_guid": self.GUIDS["PROC-0005"],
+                                                      "export": "exports/aris/2026-12-01"}])
         self.assertIn('name = "Notify the shipper"', (d / "processes" / "PROC-0005.toml").read_text())
+
+    def test_a_system_whose_export_names_documents_is_unchecked(self):
+        """The kit systems' [ids] give each document its file name: counted unchecked, never a name finding."""
+        f, summary = check_register.run(ROOT, today=TODAY)
+        nm = summary["names"]
+        self.assertEqual((nm["denominator"], nm["matched"], len(nm["differing"]), len(nm["stale"]),
+                          nm["unchecked_no_export"], nm["unchecked_document"], nm["unchecked_part"]), (57, 0, 0, 0, 0, 57, 0))
+        self.assertEqual([i for i in f.items if i["check"] in ("name", "stale")], [])
+        # a system that declares no export_names is refused
+        d = copy_register()
+        point(d, "metamodel/sources.toml", 'export_names = "document"\n', "", )
+        f, _ = check_register.run(d, today=TODAY)
+        self.assertTrue(any(i["check"] == "sources" and "export_names" in i["message"] and i["level"] == "error" for i in f.items))

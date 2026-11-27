@@ -108,25 +108,41 @@ approved product that no journey concerns, a capability the product requires tha
 journey's steps reaches by the thread walk, and a capability those steps reach that the product
 does not require. The checker prints how many of the approved products are aligned.
 
-**Names against the latest export** (decision 0024, proposed). A node's `name` is the one thing it
-repeats from its source of record, so the checker compares it with the name the latest export of
-that system gives the node's id. You get one of three things back per node:
+Another system of record can name one of your capabilities by its id without the register
+holding anything of its own: an *inbound reference* (decision 0023). An agent registry is the
+first: each usage of an agent names the capability it serves. The registry delivers a dated
+export to `exports/agent_registry/<date>/`, whose `MANIFEST.toml` lists its usages under `[ids]`
+and, under `[cites]`, the one capability id each usage cites. The checker reads the latest such
+export and warns, at the capability's file, when a usage cites a capability not yet approved or
+withdrawn (deprecated or retired), and, at the manifest, when it cites an id no node carries. It
+fails only on a malformed manifest. It prints one line per system, for example
+`agent_registry: inbound 4 carried, 3 citing, 1 approved, 1 not yet approved, 0 withdrawn, 1 no node; 1/7 approved capabilities cited`:
+the usages the export carries, those citing a capability, how their citations resolve, and how
+many of your approved capabilities any usage cites. Deprecating a capability therefore names, in
+the same pull request, the usages to tell; the usage itself is corrected in its own registry.
+The export in this repository is synthetic.
 
-- `WARNING name`: the two names differ. The line gives the node, both names, the id and the export
-  folder. If the source of record renamed it, set `name` to the export's in the pull request that
-  lands the export; if the source of record is wrong, fix it there and the next export closes the
-  warning. Never edit an export folder.
-- `WARNING stale`: the latest export no longer carries the node's id. Find out whether it was
-  deleted, moved or re-keyed in the source of record; the checker never deletes the node, and
-  gives it no name warning as well.
+**Names against the latest export** (decision 0024, proposed). A node's `name` is the one thing it
+repeats from its source of record. Each system in `metamodel/sources.toml` declares what its
+export's ids name, in `export_names`: `"concept"` when each id is the thing a node names (an ARIS
+function definition, an Archi element), `"document"` when it is a file that nodes point into. For a
+node whose system has an export, the checker reads the latest one and you get back:
+
+- `WARNING name`, on a `"concept"` system only: the node's name differs from the export's. The line
+  gives the node, both names, the id and the export folder. If the source of record renamed it, set
+  `name` to the export's in the pull request that lands the export; if the source of record is
+  wrong, fix it there and the next export closes the warning. Never edit an export folder.
+- `WARNING stale`, on any system: the latest export no longer carries the node's id. Find out
+  whether it was deleted, moved or re-keyed in the source of record; the checker never deletes the
+  node, and gives it no name warning as well.
 - nothing, when the names match.
 
 A summary line, `names: …`, counts the matches over the nodes checked, and the nodes left
-unchecked over every node with a `[source]`: those whose system has no export yet (ARIS, Archi and
-the EDM here), and those whose id names a part of a document (`<path>#<part>`) that the export
-carries only whole. Neither warning fails the merge, and no exception is needed for one. In this
-test case the kit exports give each document its file name, so every kit node that points at a
-whole document reads as differing: the export, not the node, lacks the name.
+unchecked over every node with a `[source]`, by reason: their system has no export yet (ARIS,
+Archi and the EDM here), their system's export names documents (the two kits here, whose ids give
+each file its file name), or their id names a part of a document (`<path>#<part>`) that the export
+carries only whole. Neither warning fails the merge, and no exception is needed for one. A system
+added to `sources.toml` without `export_names` is an error.
 
 ## The questions the pilot answers
 

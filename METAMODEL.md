@@ -16,11 +16,13 @@ process (coverage rule C3). For ARIS, a process node's `aris_guid` is the GUID o
 definition, never an occurrence or a model; `diagram` is the GUID of the EPC model of record; the
 register id rides on that definition in `sources.toml` `register_id_attribute` (`AT_ID` here), a
 copy of the register's id that must agree with it (decision 0022).
-The checker compares `name` with the name the latest export of the node's system (by folder date)
-gives its id in `[ids]`: a difference is a `name` warning, an id the export no longer carries a `stale`
-warning and no name finding, never a deletion; no exception excuses either. A node whose system has no
-export, or whose `<path>#<part>` id names a part of a document the export carries whole, is unchecked
-and counted (decision 0024, proposed).
+Every system declares `export_names`: `"concept"` (its export's `[ids]` name what a node names) or
+`"document"` (a file nodes point into); missing or another value is an error. For a node whose system
+has an export, an id the latest export (by folder date) no longer carries is a `stale` warning, never a
+deletion, and no name finding. On a `"concept"` system, `name` is compared with the name `[ids]` gives
+the id; a difference is a `name` warning; no exception excuses either. A node of a `"document"` system,
+one whose system has no export, and one whose `<path>#<part>` id names a part the export carries whole
+are unchecked, counted by reason over every node with a `[source]` (decision 0024, proposed).
 
 **Relationship types.** Ten files under `relationships/`: `requires`, `concerns`,
 `is_supported_by`, `realizes`, `delivers`, `supports`, `crud` (with `mode`), `manages`, `owns`,
@@ -67,6 +69,18 @@ applications that support them; the default stays `dependants`.
 The start is never among what a walk reaches, with or without `--children`: an edge back to it is reported, not counted; below a withdrawn descendant the descent continues to approved ones (decision 0016).
 A third, named walk, `--walk thread` (`THREAD`, decision 0018): a step to its supporting process (`is_supported_by`), the process to what it realises, the applications that support it and the information it reads or writes (`realizes`, `supports` inverse, `crud`), an application to what it manages (`manages`); every step away from the journey.
 Alignment rule A1 (`check_alignment`, decision 0018), warning only: an approved product with no approved journey; a capability it requires that its journeys' thread walk with `--children` does not reach; one reached that it does not require. Reported with its denominator; no exception mechanism.
+
+**Inbound references.** A system in `sources.toml` with `authoritative_for = []` authors no node:
+no `[source]` may name it (`check_nodes`). With `cites` (taxonomies) its export's `MANIFEST.toml`
+carries `[cites]`, an id from `[ids]` to the one register id it cites; no field of the cited record
+beyond that. `check_inbound`, on each system's latest export: an error for the manifest's shape only
+(a `[cites]` key absent from `[ids]`; `[cites]` for a system without `cites`); a warning `inbound` per
+citation of an id that is no node (at the manifest), a node outside `cites`, one `draft`, `proposed` or
+`rejected`, or one `deprecated` or `retired` (at the node). Summary per system: carried (the
+denominator), citing, approved, not yet approved, withdrawn, no node; approved nodes cited of all
+approved. Not a coverage rule; no exception. `reconcile.py` skips `stale_nodes` and `unregistered` for
+such a system and writes `references` (added, changed, removed against `previous`); `export_counts`
+leaves it out. `agent_registry` is the first: usages citing capabilities (decision 0023).
 
 **What the register never holds.** The content of a node beyond its checked `name`: no
 attributes copied from ARIS, Archi or the EDM. The moment a file carries a field the tool owns,
