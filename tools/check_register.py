@@ -1,7 +1,8 @@
 """The register's checks: types, directions, required metadata, hierarchy cycles, duplicate
 identities, cardinalities, dangling links, lifecycle consistency, approvals, knowledge a person
 gave and the handles it is given under (decisions 0008, 0009), glossary, the coverage rules C1 to C4 with expiring exceptions (C4, decision 0020), and the product–journey alignment
-rule A1 at warning level (decision 0018). Exit 1 on any error; warnings exit 0.
+rule A1 at warning level (decision 0018), and the inbound references another system's export cites
+(decision 0023), at warning level. Exit 1 on any error; warnings exit 0.
 
     python tools/check_register.py                 # check the working tree
     python tools/check_register.py --previous HEAD # also diff lifecycle states against a commit
@@ -481,18 +482,87 @@ def check_alignment(reg: dict, f: Findings) -> dict:
     return out
 
 
+def _latest_export(reg: dict, sysname: str) -> Path | None:
+    folders = sorted(p.parent for p in (reg["root"] / "exports" / sysname).glob("*/MANIFEST.toml"))
+    return folders[-1] if folders else None
+
+
 def export_counts(reg: dict) -> dict:
     """Per system, the latest export's ids with their denominator: held by a node, or unregistered
-    (decision 0017). Reported only; not a coverage rule."""
+    (decision 0017). Reported only; not a coverage rule. A system that authors no node is left to
+    check_inbound (decision 0023)."""
     out = {}
     for sysname in sorted(reg["sources"]["system"]):
-        folders = sorted(p.parent for p in (reg["root"] / "exports" / sysname).glob("*/MANIFEST.toml"))
-        if not folders:
+        folder = _latest_export(reg, sysname)
+        if folder is None or not reg["sources"]["system"][sysname].get("authoritative_for"):
             continue
-        man = load_toml(folders[-1] / "MANIFEST.toml")
+        man = load_toml(folder / "MANIFEST.toml")
         n = len(man.get("ids", {}))
         u = len(unregistered(reg, man))
-        out[sysname] = {"export": folders[-1].relative_to(reg["root"]).as_posix(), "denominator": n, "registered": n - u, "unregistered": u}
+        out[sysname] = {"export": folder.relative_to(reg["root"]).as_posix(), "denominator": n, "registered": n - u, "unregistered": u}
+    return out
+
+
+NOT_YET_APPROVED = ("draft", "proposed", "rejected")
+WITHDRAWN_STATES = ("deprecated", "retired")
+
+
+def check_inbound(reg: dict, f: Findings) -> dict:
+    """Decision 0023: on the latest export of each system, the inbound references its [cites] table
+    carries. An error for the manifest's own shape only (a [cites] key absent from [ids]; a [cites]
+    table for a system without `cites`); a warning, `inbound`, per citation of an id that is no node,
+    a node outside the taxonomies `cites` lists, a node not yet approved, or a withdrawn one. Reported
+    per system with its denominator, the usages carried; not a coverage rule: no exception applies
+    and no percentage is a pass."""
+    nodes = reg["nodes"]
+    out = {}
+    for sysname, spec in sorted(reg["sources"]["system"].items()):
+        folder = _latest_export(reg, sysname)
+        if folder is None:
+            continue
+        mwhere = (folder / "MANIFEST.toml").relative_to(reg["root"]).as_posix()
+        man = load_toml(folder / "MANIFEST.toml")
+        cites, taxa = man.get("cites"), spec.get("cites") or []
+        if not taxa:
+            if cites is not None:
+                f.error("inbound", mwhere, f"a [cites] table, but {sysname} has no cites in metamodel/sources.toml")
+            continue
+        cites, ids = cites or {}, man.get("ids", {})
+        s = {"export": folder.relative_to(reg["root"]).as_posix(), "denominator": len(ids), "citing": 0,
+             "approved": 0, "not_yet_approved": 0, "withdrawn": 0, "no_node": 0, "outside": 0}
+        cited_approved = set()
+        for uid in sorted(cites):
+            cid = cites[uid]
+            if uid not in ids:
+                f.error("inbound", mwhere, f"[cites] {uid!r} is not in [ids]")
+                continue
+            if not isinstance(cid, str):
+                f.error("inbound", mwhere, f"[cites] {uid!r} must name one register id")
+                continue
+            s["citing"] += 1
+            n = nodes.get(cid)
+            cite = f"{sysname} {spec.get('id_field', 'id')} {uid} cites {cid}"
+            if n is None:
+                s["no_node"] += 1
+                f.warn("inbound", mwhere, f"{cite}, which is no node of the register (a provisional or mistyped id)")
+                continue
+            nwhere = f"{n['_taxonomy']}/{cid}.toml"
+            if n["_taxonomy"] not in taxa:
+                s["outside"] += 1
+                f.warn("inbound", nwhere, f"{cite}, a node of {n['_taxonomy']}; {sysname} cites {', '.join(taxa)} only")
+            elif n.get("state") == "approved":
+                s["approved"] += 1
+                cited_approved.add(cid)
+            elif n.get("state") in WITHDRAWN_STATES:
+                s["withdrawn"] += 1
+                f.warn("inbound", nwhere, f"{cite}, which is {n.get('state')} (withdrawn)")
+            else:
+                s["not_yet_approved"] += 1
+                f.warn("inbound", nwhere, f"{cite}, which is {n.get('state')} (not yet approved)")
+        s["approved_cited"] = len(cited_approved)
+        s["approved_total"] = len([n for n in nodes.values() if n["_taxonomy"] in taxa and n.get("state") == "approved"])
+        s["cites"] = taxa
+        out[sysname] = s
     return out
 
 
@@ -549,6 +619,7 @@ def run(root: Path = ROOT, previous: str | None = None, today: dt.date | None = 
     if previous:
         check_transitions(reg, f, previous)
     summary["exports"] = export_counts(reg)
+    summary["inbound"] = check_inbound(reg, f)
     summary["nodes"] = len(reg["nodes"])
     summary["links"] = sum(len(r["links"]) for r in reg["relationships"].values())
     return f, summary
@@ -573,6 +644,11 @@ def main(argv=None) -> int:
           f"{len(a1['required_not_reached'])} required not reached, {len(a1['reached_not_required'])} reached not required")
     for sysname, s in summary["exports"].items():
         print(f"{sysname}: {s['registered']}/{s['denominator']} export ids held by a node, {s['unregistered']} unregistered ({s['export']})")
+    for sysname, s in summary["inbound"].items():
+        print(f"{sysname}: inbound {s['denominator']} carried, {s['citing']} citing, {s['approved']} approved, "
+              f"{s['not_yet_approved']} not yet approved, {s['withdrawn']} withdrawn, {s['no_node']} no node"
+              + (f", {s['outside']} outside {', '.join(s['cites'])}" if s["outside"] else "")
+              + f"; {s['approved_cited']}/{s['approved_total']} approved {', '.join(s['cites'])} cited ({s['export']})")
     print(f"{summary['nodes']} nodes, {summary['links']} links, {len(f.errors)} error(s), {len(f.items) - len(f.errors)} warning(s)")
     if a.report:
         a.report.parent.mkdir(parents=True, exist_ok=True)

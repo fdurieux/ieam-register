@@ -108,6 +108,20 @@ approved product that no journey concerns, a capability the product requires tha
 journey's steps reaches by the thread walk, and a capability those steps reach that the product
 does not require. The checker prints how many of the approved products are aligned.
 
+Another system of record can name one of your capabilities by its id without the register
+holding anything of its own: an *inbound reference* (decision 0023). An agent registry is the
+first: each usage of an agent names the capability it serves. The registry delivers a dated
+export to `exports/agent_registry/<date>/`, whose `MANIFEST.toml` lists its usages under `[ids]`
+and, under `[cites]`, the one capability id each usage cites. The checker reads the latest such
+export and warns, at the capability's file, when a usage cites a capability not yet approved or
+withdrawn (deprecated or retired), and, at the manifest, when it cites an id no node carries. It
+fails only on a malformed manifest. It prints one line per system, for example
+`agent_registry: inbound 4 carried, 3 citing, 1 approved, 1 not yet approved, 0 withdrawn, 1 no node; 1/7 approved capabilities cited`:
+the usages the export carries, those citing a capability, how their citations resolve, and how
+many of your approved capabilities any usage cites. Deprecating a capability therefore names, in
+the same pull request, the usages to tell; the usage itself is corrected in its own registry.
+The export in this repository is synthetic.
+
 ## The questions the pilot answers
 
 ```
