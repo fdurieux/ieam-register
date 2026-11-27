@@ -1,6 +1,6 @@
 # 0023 — Agents and usages stay in their own registry and cite a capability by id
 
-Date: 2026-11-27. State: proposed. Drafted by session_01HTAA1RXdnjtz75m4FvtKDG, dispatched by
+Date: 2026-11-27. State: approved (fdurieux, in the maintainer's chat on 2026-11-27: "approve 0022 and 0023"; recorded on the pull request before its merge; the line read proposed when drafted). Drafted by session_01HTAA1RXdnjtz75m4FvtKDG, dispatched by
 session_01HTAA1UV2N6XGtCwCvVnB5t on fdurieux/ieam-register#40; a session never approves (decision 0019).
 Supersedes: nothing. Adds one glossary term, *inbound reference*; proposes a system without a taxonomy in
 `metamodel/sources.toml`, a `[cites]` table in an export's `MANIFEST.toml` and one warning-level check.
